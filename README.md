@@ -26,6 +26,57 @@ coze build
 coze start
 ```
 
+## 生产部署
+
+### 一键部署 (Linux)
+
+本项目提供了完整的自动化部署脚本，可在 Linux 服务器上一键完成所有设置：
+
+```bash
+sudo ./deploy.sh
+```
+
+部署脚本会自动完成：
+- ✅ 安装 Node.js 20 (如未安装)
+- ✅ 安装 PostgreSQL 数据库 (如未安装)
+- ✅ 创建数据库和用户
+- ✅ 安装 pnpm 包管理器
+- ✅ 配置环境变量
+- ✅ 安装项目依赖
+- ✅ 运行数据库迁移
+- ✅ 构建生产版本
+- ✅ 创建 systemd 系统服务
+- ✅ 启动应用程序
+
+部署后，应用会自动以 systemd 服务方式运行，支持：
+- 开机自动启动
+- 崩溃自动重启
+- 系统日志记录
+
+### 管理服务
+
+```bash
+# 查看状态
+sudo systemctl status calendar-events
+
+# 查看日志
+sudo journalctl -u calendar-events -f
+
+# 重启服务
+sudo systemctl restart calendar-events
+
+# 停止服务
+sudo systemctl stop calendar-events
+
+# 启动服务
+sudo systemctl start calendar-events
+
+# 故障诊断
+sudo ./troubleshoot.sh
+```
+
+详细部署说明请参考 [DEPLOYMENT.md](DEPLOYMENT.md) 文档。
+
 ## 项目结构
 
 ```

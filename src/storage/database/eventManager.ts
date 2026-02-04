@@ -1,4 +1,4 @@
-import { eq, and, SQL, gte, lte, like } from "drizzle-orm";
+import { eq, and, SQL, gte, lte, like, isNull } from "drizzle-orm";
 import { getDb } from "coze-coding-dev-sdk";
 import { events, insertEventWithCoercionSchema, updateEventWithCoercionSchema } from "./shared/schema";
 import type { Event, InsertEvent, UpdateEvent } from "./shared/schema";
@@ -42,7 +42,11 @@ export class EventManager {
       });
     }
     if (creatorIp !== undefined) {
-      conditions.push(eq(events.creatorIp, creatorIp));
+      if (creatorIp === null) {
+        conditions.push(isNull(events.creatorIp));
+      } else {
+        conditions.push(eq(events.creatorIp, creatorIp));
+      }
     }
 
     const query = db.select().from(events);
