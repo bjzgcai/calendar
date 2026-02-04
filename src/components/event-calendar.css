@@ -1,0 +1,101 @@
+/* Mobile-responsive header toolbar */
+@media (max-width: 768px) {
+  .fc-header-toolbar.fc-toolbar {
+    padding: 4px 0;
+    gap: 4px;
+  }
+
+  .fc-toolbar-chunk {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  /* Make title smaller on mobile */
+  .fc-toolbar-title {
+    font-size: 18px !important;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+
+  /* Make buttons more compact */
+  .fc-button {
+    padding: 4px 8px !important;
+    font-size: 12px !important;
+    height: auto !important;
+    min-height: 28px;
+  }
+
+  /* Adjust button spacing */
+  .fc-button-group {
+    gap: 2px;
+  }
+
+  .fc-button-group .fc-button {
+    margin: 0 !important;
+  }
+
+  /* Make prev/next arrows more compact */
+  .fc-prev-button,
+  .fc-next-button {
+    padding: 4px 6px !important;
+    min-width: 32px;
+  }
+
+  /* Adjust spacing between toolbar sections */
+  .fc-toolbar.fc-header-toolbar > * + * {
+    margin-left: 4px !important;
+  }
+}
+
+/* Custom Tippy.js tooltip styling for event calendar */
+.tippy-box[data-theme~="event-tooltip"] {
+  background-color: rgba(0, 0, 0, 0.95);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(8px);
+}
+
+.tippy-box[data-theme~="event-tooltip"] .tippy-content {
+  padding: 12px;
+}
+
+.tippy-box[data-theme~="event-tooltip"][data-placement^="top"] > .tippy-arrow::before {
+  border-top-color: rgba(0, 0, 0, 0.95);
+}
+
+.tippy-box[data-theme~="event-tooltip"][data-placement^="bottom"] > .tippy-arrow::before {
+  border-bottom-color: rgba(0, 0, 0, 0.95);
+}
+
+.tippy-box[data-theme~="event-tooltip"][data-placement^="left"] > .tippy-arrow::before {
+  border-left-color: rgba(0, 0, 0, 0.95);
+}
+
+.tippy-box[data-theme~="event-tooltip"][data-placement^="right"] > .tippy-arrow::before {
+  border-right-color: rgba(0, 0, 0, 0.95);
+}
+
+/* Event tooltip content styling */
+.event-tooltip-title {
+  font-weight: 600;
+  margin-bottom: 4px;
+  font-size: 14px;
+  color: #ffffff;
+  line-height: 1.4;
+}
+
+.event-tooltip-time {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+
+.event-tooltip-image {
+  width: 100%;
+  height: auto;
+  max-height: 150px;
+  object-fit: cover;
+  border-radius: 6px;
+  margin-top: 8px;
+}

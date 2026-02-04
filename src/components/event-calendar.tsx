@@ -6,6 +6,9 @@ import dayGridPlugin from "@fullcalendar/daygrid"
 import timeGridPlugin from "@fullcalendar/timegrid"
 import listPlugin from "@fullcalendar/list"
 import interactionPlugin from "@fullcalendar/interaction"
+import tippy from "tippy.js"
+import "tippy.js/dist/tippy.css"
+import "./event-calendar.css"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useMediaQuery } from "@/hooks/use-media-query"
@@ -104,7 +107,6 @@ export function EventCalendar({ onEventClick, onTimeSlotSelect, organizerFilter,
   }
 
   const handleEventDidMount = (info: any) => {
-    // 添加 tooltip 属性
     const event = info.event
     const startTime = event.start
     const endTime = event.end
@@ -121,8 +123,40 @@ export function EventCalendar({ onEventClick, onTimeSlotSelect, organizerFilter,
       })
     }
 
-    const tooltip = `${event.title}\n${formatTime(startTime)} - ${formatTime(endTime)}`
-    info.el.setAttribute("title", tooltip)
+    const timeStr = `${formatTime(startTime)} - ${formatTime(endTime)}`
+    const imageUrl = event.extendedProps?.imageUrl
+
+    // 创建富文本提示内容
+    const tooltipContent = `
+      <div style="max-width: 280px;">
+        <div class="event-tooltip-title">
+          ${event.title}
+        </div>
+        <div class="event-tooltip-time">
+          ${timeStr}
+        </div>
+        ${
+          imageUrl
+            ? `<img
+                src="${imageUrl}"
+                alt="${event.title}"
+                class="event-tooltip-image"
+              />`
+            : ""
+        }
+      </div>
+    `
+
+    // 使用 tippy.js 创建富文本提示
+    tippy(info.el, {
+      content: tooltipContent,
+      allowHTML: true,
+      theme: "event-tooltip",
+      placement: "top",
+      arrow: true,
+      interactive: false,
+      appendTo: () => document.body,
+    })
   }
 
   if (loading) {
