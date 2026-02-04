@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAccessToken, getUserInfo } from "@/lib/dingtalk";
 import { getSession } from "@/lib/session";
-import { getDb } from "coze-coding-dev-sdk";
+import { getDirectDb } from "@/lib/db";
 import { users, User } from "@/storage/database/shared/schema";
 import { eq } from "drizzle-orm";
 
@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const db = await getDb();
+    const db = getDirectDb();
 
     // 1. 使用授权码获取访问令牌
     const tokenData = await getAccessToken(code);
