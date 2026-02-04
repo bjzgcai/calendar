@@ -363,14 +363,11 @@ build_application() {
 
     cd "$PROJECT_DIR"
 
-    # Check if .next directory exists and is recent
+    # Always clean the build cache to prevent stale schema issues
     if [ -d "$PROJECT_DIR/.next" ]; then
-        # Check if build is older than 1 hour
-        NEXT_DIR_AGE=$(($(date +%s) - $(stat -c %Y "$PROJECT_DIR/.next")))
-        if [ $NEXT_DIR_AGE -lt 3600 ]; then
-            log_success "Recent build found (less than 1 hour old), skipping..."
-            return 0
-        fi
+        log_info "Removing old build cache to prevent stale schema issues..."
+        rm -rf "$PROJECT_DIR/.next"
+        log_success "Build cache cleaned"
     fi
 
     log_info "Running production build..."
