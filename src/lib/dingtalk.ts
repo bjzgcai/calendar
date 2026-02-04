@@ -36,19 +36,19 @@ export async function getAccessToken(code: string): Promise<{
   expires_in: number;
   refresh_token: string;
 }> {
-  const params = new URLSearchParams({
-    client_id: DINGTALK_CLIENT_ID,
-    client_secret: DINGTALK_CLIENT_SECRET,
+  const body = {
+    clientId: DINGTALK_CLIENT_ID,
+    clientSecret: DINGTALK_CLIENT_SECRET,
     code: code,
-    grant_type: "authorization_code",
-  });
+    grantType: "authorization_code",
+  };
 
   const response = await fetch(`${DINGTALK_API_BASE}/v1.0/oauth2/userAccessToken`, {
     method: "POST",
     headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
+      "Content-Type": "application/json",
     },
-    body: params.toString(),
+    body: JSON.stringify(body),
   });
 
   if (!response.ok) {
