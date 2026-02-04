@@ -370,7 +370,8 @@ build_application() {
         log_success "Build cache cleaned"
     fi
 
-    # Ensure public/posters directory exists with proper permissions
+    # Ensure public/posters directory exists for local file uploads
+    # (Only needed if ENABLE_S3_STORAGE is not set to true)
     log_info "Ensuring upload directory exists..."
     if [ ! -d "$PROJECT_DIR/public/posters" ]; then
         mkdir -p "$PROJECT_DIR/public/posters"
