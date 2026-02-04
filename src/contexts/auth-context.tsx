@@ -14,6 +14,7 @@ interface User {
 interface AuthContextType {
   user: User | null;
   loading: boolean;
+  ssoEnabled: boolean;
   login: () => void;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -24,6 +25,19 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [ssoEnabled, setSsoEnabled] = useState(false);
+
+  const fetchConfig = async () => {
+    try {
+      const response = await fetch("/api/auth/config");
+      if (response.ok) {
+        const config = await response.json();
+        setSsoEnabled(config.ssoEnabled);
+      }
+    } catch (error) {
+      console.error("Failed to fetch auth config:", error);
+    }
+  };
 
   const fetchUser = async () => {
     try {
@@ -53,6 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
+    fetchConfig();
     fetchUser();
   }, []);
 
@@ -75,7 +90,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, refreshUser }}>
+    <AuthContext.Provider value={{ user, loading, ssoEnabled, login, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

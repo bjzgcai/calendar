@@ -1,11 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAccessToken, getUserInfo } from "@/lib/dingtalk";
+import { getAccessToken, getUserInfo, isDingTalkSSOEnabled } from "@/lib/dingtalk";
 import { getSession } from "@/lib/session";
 import { getDirectDb } from "@/lib/db";
 import { users, User } from "@/storage/database/shared/schema";
 import { eq } from "drizzle-orm";
 
 export async function GET(request: NextRequest) {
+  // 检查 DingTalk SSO 是否启用
+  if (!isDingTalkSSOEnabled()) {
+    return NextResponse.json(
+      { error: "DingTalk SSO is not enabled" },
+      { status: 403 }
+    );
+  }
+
   const searchParams = request.nextUrl.searchParams;
   const code = searchParams.get("code");
   const state = searchParams.get("state");

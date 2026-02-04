@@ -30,4 +30,4 @@ echo "Clearing port ${PORT} before start."
 kill_port_if_listening
 echo "Starting HTTP service on port ${PORT} for dev..."
 
-npx next dev --turbopack --port $PORT
+npx next dev --turbopack --port $PORT --hostname 0.0.0.0

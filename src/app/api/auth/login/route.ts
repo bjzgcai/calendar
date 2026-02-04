@@ -1,7 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getDingTalkAuthUrl } from "@/lib/dingtalk";
+import { getDingTalkAuthUrl, isDingTalkSSOEnabled } from "@/lib/dingtalk";
 
 export async function GET(request: NextRequest) {
+  // 检查 DingTalk SSO 是否启用
+  if (!isDingTalkSSOEnabled()) {
+    return NextResponse.json(
+      { error: "DingTalk SSO is not enabled" },
+      { status: 403 }
+    );
+  }
+
   // 获取当前应用的 URL 来构建回调地址
   const protocol = process.env.NODE_ENV === "production" ? "https" : "http";
   const host = request.headers.get("host") || "localhost:5000";

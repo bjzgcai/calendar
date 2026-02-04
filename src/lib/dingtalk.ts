@@ -13,6 +13,14 @@ const DINGTALK_CLIENT_SECRET = process.env.DINGTALK_CLIENT_SECRET!;
 const DINGTALK_CORP_ID = process.env.DINGTALK_CORP_ID!;
 
 /**
+ * 检查 DingTalk SSO 是否启用
+ * 默认为关闭状态
+ */
+export function isDingTalkSSOEnabled(): boolean {
+  return process.env.ENABLE_DINGTALK_SSO === "true";
+}
+
+/**
  * 获取 DingTalk 登录授权 URL
  */
 export function getDingTalkAuthUrl(redirectUri: string, state: string = "STATE") {

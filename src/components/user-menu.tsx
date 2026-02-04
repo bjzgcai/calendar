@@ -14,7 +14,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LogIn, LogOut, User } from "lucide-react";
 
 export function UserMenu() {
-  const { user, loading, login, logout } = useAuth();
+  const { user, loading, ssoEnabled, login, logout } = useAuth();
 
   if (loading) {
     return (
@@ -22,6 +22,11 @@ export function UserMenu() {
         <div className="h-8 w-8 rounded-full bg-gray-200 animate-pulse" />
       </div>
     );
+  }
+
+  // 如果 SSO 未启用且用户未登录，不显示任何内容
+  if (!ssoEnabled && (!user || !user.isLoggedIn)) {
+    return null;
   }
 
   if (!user || !user.isLoggedIn) {
