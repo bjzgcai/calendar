@@ -18,8 +18,9 @@ export class EventManager {
     endDate?: Date;
     organizer?: string;
     tags?: string;
+    creatorIp?: string | null;
   }): Promise<Event[]> {
-    const { skip = 0, limit = 100, startDate, endDate, organizer, tags } = options || {};
+    const { skip = 0, limit = 100, startDate, endDate, organizer, tags, creatorIp } = options || {};
     const db = await getDb();
 
     const conditions: SQL[] = [];
@@ -34,7 +35,14 @@ export class EventManager {
       conditions.push(eq(events.organizer, organizer));
     }
     if (tags) {
-      conditions.push(like(events.tags, `%${tags}%`));
+      // Support multiple tags separated by comma (AND logic)
+      const tagList = tags.split(',').filter(t => t.trim());
+      tagList.forEach(tag => {
+        conditions.push(like(events.tags, `%${tag.trim()}%`));
+      });
+    }
+    if (creatorIp !== undefined) {
+      conditions.push(eq(events.creatorIp, creatorIp));
     }
 
     const query = db.select().from(events);
@@ -87,6 +95,23 @@ export class EventManager {
       tags.forEach((tag) => tagSet.add(tag));
     });
     return Array.from(tagSet).sort();
+  }
+
+  async getTagsWithCounts(): Promise<{ name: string; count: number }[]> {
+    const db = await getDb();
+    const allEvents = await db.select({ tags: events.tags }).from(events);
+    const tagMap = new Map<string, number>();
+
+    allEvents.forEach((event) => {
+      const tags = event.tags.match(/#[^#]+#/g) || [];
+      tags.forEach((tag) => {
+        tagMap.set(tag, (tagMap.get(tag) || 0) + 1);
+      });
+    });
+
+    return Array.from(tagMap.entries())
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count); // Sort by count descending
   }
 }
 

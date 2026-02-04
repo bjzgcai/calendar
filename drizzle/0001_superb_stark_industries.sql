@@ -1,0 +1,1 @@
+ALTER TABLE "events" ADD COLUMN "creator_ip" varchar(45);

@@ -446,7 +446,7 @@ export function EventForm({
 
       // 更新标签列表
       if (initialValues.tags) {
-        const tags = initialValues.tags.match(/#[^#\s]+/g) || []
+        const tags = initialValues.tags.match(/#[^#]+#/g) || []
         setTagList(tags)
       }
 
@@ -552,8 +552,8 @@ export function EventForm({
     console.log("initialValues:", initialValues)
 
     try {
-      // 合并标签列表
-      const allTags = [...tagList, ...data.tags!.split(" ").filter((t) => t.trim())].join(" ")
+      // 使用标签列表（tagList 是唯一的数据源）
+      const allTags = tagList.join(" ")
 
       // 检查是否是编辑模式
       const isEditMode = !!initialValues?.id

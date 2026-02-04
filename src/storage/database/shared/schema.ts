@@ -32,6 +32,7 @@ export const events = pgTable("events", {
   tags: text("tags").notNull().default(""),
   recurrenceRule: recurrenceRuleEnum("recurrence_rule").notNull().default("none"),
   recurrenceEndDate: timestamp("recurrence_end_date", { withTimezone: true }),
+  creatorIp: varchar("creator_ip", { length: 45 }), // 支持 IPv4 和 IPv6
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 })

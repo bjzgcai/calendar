@@ -8,6 +8,13 @@
       "when": 1770168770068,
       "tag": "0000_slimy_zodiak",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1770170359167,
+      "tag": "0001_superb_stark_industries",
+      "breakpoints": true
     }
   ]
 }

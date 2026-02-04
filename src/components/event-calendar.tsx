@@ -15,10 +15,11 @@ interface EventCalendarProps {
   onEventClick?: (event: CalendarEvent) => void
   onTimeSlotSelect?: (start: Date, end: Date) => void
   organizerFilter?: string
-  tagFilter?: string
+  tagsFilter?: string[]
+  myEventsFilter?: boolean
 }
 
-export function EventCalendar({ onEventClick, onTimeSlotSelect, organizerFilter, tagFilter }: EventCalendarProps) {
+export function EventCalendar({ onEventClick, onTimeSlotSelect, organizerFilter, tagsFilter, myEventsFilter }: EventCalendarProps) {
   const [events, setEvents] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const isDesktop = useMediaQuery("(min-width: 768px)")
@@ -35,7 +36,11 @@ export function EventCalendar({ onEventClick, onTimeSlotSelect, organizerFilter,
     try {
       const params = new URLSearchParams()
       if (organizerFilter) params.append("organizer", organizerFilter)
-      if (tagFilter) params.append("tags", tagFilter)
+      if (tagsFilter && tagsFilter.length > 0) {
+        // Join multiple tags with comma for AND filtering
+        params.append("tags", tagsFilter.join(","))
+      }
+      if (myEventsFilter) params.append("myEvents", "true")
 
       const response = await fetch(`/api/events?${params.toString()}`)
       if (!response.ok) throw new Error("获取活动失败")
@@ -47,7 +52,7 @@ export function EventCalendar({ onEventClick, onTimeSlotSelect, organizerFilter,
     } finally {
       setLoading(false)
     }
-  }, [organizerFilter, tagFilter])
+  }, [organizerFilter, tagsFilter, myEventsFilter])
 
   useEffect(() => {
     fetchEvents()

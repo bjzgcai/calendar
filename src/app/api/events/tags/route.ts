@@ -3,7 +3,7 @@ import { eventManager } from "@/storage/database/eventManager";
 
 export async function GET() {
   try {
-    const tags = await eventManager.getTags();
+    const tags = await eventManager.getTagsWithCounts();
     return NextResponse.json(tags);
   } catch (error) {
     console.error("Error fetching tags:", error);

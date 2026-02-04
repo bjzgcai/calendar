@@ -14,7 +14,8 @@ export default function Home() {
   const [formOpen, setFormOpen] = useState(false)
   const [initialFormValues, setInitialFormValues] = useState<any>(undefined)
   const [organizerFilter, setOrganizerFilter] = useState<string | undefined>()
-  const [tagFilter, setTagFilter] = useState<string | undefined>()
+  const [tagsFilter, setTagsFilter] = useState<string[]>([])
+  const [myEventsFilter, setMyEventsFilter] = useState<boolean>(false)
   const [refreshKey, setRefreshKey] = useState(0)
 
   const handleEventClick = (event: CalendarEvent) => {
@@ -67,7 +68,7 @@ export default function Home() {
     }
 
     const initialValues = {
-      id: event.id,
+      id: Number(event.id),
       title: event.title,
       content: event.extendedProps.content,
       date: formatDate(startDate),
@@ -132,8 +133,10 @@ export default function Home() {
           {/* Filter Sidebar */}
           <div className="lg:col-span-1">
             <EventFilter
+              key={refreshKey}
               onOrganizerChange={setOrganizerFilter}
-              onTagChange={setTagFilter}
+              onTagsChange={setTagsFilter}
+              onMyEventsChange={setMyEventsFilter}
             />
           </div>
 
@@ -144,7 +147,8 @@ export default function Home() {
               onEventClick={handleEventClick}
               onTimeSlotSelect={handleTimeSlotSelect}
               organizerFilter={organizerFilter}
-              tagFilter={tagFilter}
+              tagsFilter={tagsFilter}
+              myEventsFilter={myEventsFilter}
             />
           </div>
         </div>

@@ -71,7 +71,7 @@ export function EventDetail({ event, open, onOpenChange, onEventDeleted, onEvent
   }
 
   const parseTags = (tags: string): string[] => {
-    const matches = tags.match(/#[^#\s]+/g)
+    const matches = tags.match(/#[^#]+#/g)
     return matches || []
   }
 
@@ -113,13 +113,19 @@ export function EventDetail({ event, open, onOpenChange, onEventDeleted, onEvent
 
         <div className="space-y-4">
           {event.extendedProps.imageUrl && (
-            <div className="relative w-full h-64 rounded-lg overflow-hidden">
+            <a
+              href="https://story.lab.bjzgca.edu.cn/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block relative w-full h-64 rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
+              title="点击访问故事网站"
+            >
               <img
                 src={event.extendedProps.imageUrl}
                 alt={event.title}
                 className="w-full h-full object-cover"
               />
-            </div>
+            </a>
           )}
 
           <div className="flex items-center gap-4 text-sm text-muted-foreground">

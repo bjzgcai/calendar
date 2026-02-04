@@ -3,6 +3,7 @@ import { eventManager } from "@/storage/database/eventManager";
 import { addDays, addWeeks, addMonths, isWeekend } from "date-fns";
 import type { Event } from "@/storage/database";
 import { getOrganizationType } from "@/storage/database";
+import { getClientIp } from "@/lib/get-client-ip";
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,12 +12,20 @@ export async function GET(request: NextRequest) {
     const endDate = searchParams.get("endDate");
     const organizer = searchParams.get("organizer");
     const tags = searchParams.get("tags");
+    const myEvents = searchParams.get("myEvents") === "true";
+
+    // 如果请求只查看"我的活动"，则获取当前用户的 IP 并过滤
+    let creatorIp: string | null | undefined = undefined;
+    if (myEvents) {
+      creatorIp = getClientIp(request);
+    }
 
     const events = await eventManager.getAllEvents({
       startDate: startDate ? new Date(startDate) : undefined,
       endDate: endDate ? new Date(endDate) : undefined,
       organizer: organizer || undefined,
       tags: tags || undefined,
+      creatorIp,
     });
 
     // 转换为 FullCalendar 格式
@@ -51,6 +60,9 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
+    // 获取创建者的 IP 地址
+    const creatorIp = getClientIp(request);
+
     // 如果传入了 date, startHour, endHour，则构建 startTime 和 endTime
     const startTime = body.date && body.startHour
       ? new Date(`${body.date}T${body.startHour}:00`).toISOString()
@@ -74,6 +86,7 @@ export async function POST(request: NextRequest) {
       tags: body.tags || "",
       recurrenceRule: body.recurrenceRule || "none",
       recurrenceEndDate: body.recurrenceEndDate ? new Date(body.recurrenceEndDate) : null,
+      creatorIp: creatorIp || null,
     });
 
     // 如果有重复规则，生成重复活动
@@ -128,6 +141,7 @@ export async function POST(request: NextRequest) {
           tags: body.tags || "",
           recurrenceRule: body.recurrenceRule || "none",
           recurrenceEndDate: body.recurrenceEndDate ? new Date(body.recurrenceEndDate) : null,
+          creatorIp: creatorIp || null,
         });
 
         createdEvents.push(repeatedEvent);
