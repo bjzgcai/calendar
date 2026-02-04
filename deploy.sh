@@ -35,6 +35,45 @@ DB_HOST="localhost"
 DB_PORT=5432
 NODE_VERSION="20"  # LTS version
 
+# Function to check if a port is available
+is_port_available() {
+    local port=$1
+    ! lsof -Pi :$port -sTCP:LISTEN -t >/dev/null 2>&1
+}
+
+# Function to find next available port
+find_available_port() {
+    local start_port=$1
+    local max_port=$((start_port + 100))  # Try up to 100 ports
+
+    for ((port=start_port; port<=max_port; port++)); do
+        if is_port_available $port; then
+            echo $port
+            return 0
+        fi
+    done
+
+    log_error "No available ports found between $start_port and $max_port"
+    return 1
+}
+
+# Check and update port if necessary
+check_and_update_port() {
+    if ! is_port_available $APP_PORT; then
+        log_warning "Port $APP_PORT is already in use"
+        NEW_PORT=$(find_available_port $APP_PORT)
+        if [ $? -eq 0 ]; then
+            log_info "Auto-incrementing to available port: $NEW_PORT"
+            APP_PORT=$NEW_PORT
+        else
+            log_error "Could not find an available port"
+            exit 1
+        fi
+    else
+        log_info "Port $APP_PORT is available"
+    fi
+}
+
 # Log functions
 log_info() {
     echo -e "${BLUE}[INFO]${NC} $1"
@@ -71,6 +110,18 @@ get_actual_user() {
 
 ACTUAL_USER=$(get_actual_user)
 ACTUAL_HOME=$(eval echo ~$ACTUAL_USER)
+
+###############################################################################
+# Check and Install lsof (required for port checking)
+###############################################################################
+install_lsof() {
+    if ! command -v lsof &> /dev/null; then
+        log_info "Installing lsof (required for port checking)..."
+        apt-get update -qq
+        apt-get install -y lsof
+        log_success "lsof installed"
+    fi
+}
 
 ###############################################################################
 # 1. Check and Install Node.js
@@ -209,6 +260,15 @@ setup_environment() {
         else
             echo "PGDATABASE_URL=postgresql://$DB_USER:$DB_PASSWORD@$DB_HOST:$DB_PORT/$DB_NAME" >> "$ENV_FILE"
         fi
+
+        # Update or add PORT configuration
+        if grep -q "^PORT=" "$ENV_FILE"; then
+            log_info "Updating PORT in .env to $APP_PORT..."
+            sed -i "s/^PORT=.*/PORT=$APP_PORT/" "$ENV_FILE"
+        else
+            log_info "Adding PORT to .env..."
+            echo "PORT=$APP_PORT" >> "$ENV_FILE"
+        fi
     else
         log_info "Creating .env file..."
         cat > "$ENV_FILE" << EOF
@@ -234,7 +294,7 @@ EOF
     chown $ACTUAL_USER:$ACTUAL_USER "$ENV_FILE"
     chmod 600 "$ENV_FILE"
 
-    log_success "Environment variables configured"
+    log_success "Environment variables configured (PORT=$APP_PORT)"
 }
 
 ###############################################################################
@@ -456,8 +516,15 @@ main() {
 
     log_info "Project Directory: $PROJECT_DIR"
     log_info "Running as: $ACTUAL_USER"
-    log_info "Application Port: $APP_PORT"
+    log_info "Initial Port: $APP_PORT"
     log_info "Database: $DB_NAME"
+    echo ""
+
+    # Install lsof if needed
+    install_lsof
+
+    # Check port availability
+    check_and_update_port
     echo ""
 
     # Step 1: Install Node.js
