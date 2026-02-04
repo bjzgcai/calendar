@@ -422,30 +422,40 @@ export function EventForm({
 
   // 当 initialValues 变化时，更新表单值和相关状态
   useEffect(() => {
-    if (initialValues) {
-      Object.keys(initialValues).forEach((key) => {
-        if (initialValues[key as keyof EventFormData] !== undefined) {
-          setValue(key as keyof EventFormData, initialValues[key as keyof EventFormData] as any)
-        }
+    if (initialValues && open) {
+      // 使用 reset 而不是 setValue，确保表单状态正确更新
+      reset({
+        id: initialValues.id,
+        title: initialValues.title || "",
+        content: initialValues.content || "",
+        date: initialValues.date || "",
+        startHour: initialValues.startHour || "",
+        endHour: initialValues.endHour || "",
+        location: initialValues.location || "",
+        organizer: initialValues.organizer || "",
+        tags: initialValues.tags || "",
+        link: initialValues.link || "",
+        recurrenceRule: initialValues.recurrenceRule || "none",
+        recurrenceEndDate: initialValues.recurrenceEndDate || "",
       })
-      
+
       // 更新图片 URL
       if (initialValues.imageUrl !== undefined) {
         setImageUrl(initialValues.imageUrl)
       }
-      
+
       // 更新标签列表
       if (initialValues.tags) {
         const tags = initialValues.tags.match(/#[^#\s]+/g) || []
         setTagList(tags)
       }
-      
+
       // 更新组织者
       if (initialValues.organizer) {
         setSelectedOrganizer(initialValues.organizer)
       }
     }
-  }, [initialValues, setValue])
+  }, [initialValues, open, reset])
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
