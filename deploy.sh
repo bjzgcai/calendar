@@ -370,18 +370,21 @@ build_application() {
         log_success "Build cache cleaned"
     fi
 
-    # Ensure public/posters directory exists for local file uploads
-    # (Only needed if ENABLE_S3_STORAGE is not set to true)
-    log_info "Ensuring upload directory exists..."
-    if [ ! -d "$PROJECT_DIR/public/posters" ]; then
-        mkdir -p "$PROJECT_DIR/public/posters"
-        log_success "Created public/posters directory"
+    # Create persistent storage directory for poster uploads
+    # Default location: /var/calendar-events/posters
+    # Can be overridden with POSTERS_STORAGE_PATH environment variable
+    STORAGE_PATH="${POSTERS_STORAGE_PATH:-/var/calendar-events/posters}"
+
+    log_info "Ensuring persistent storage directory exists at: $STORAGE_PATH"
+    if [ ! -d "$STORAGE_PATH" ]; then
+        mkdir -p "$STORAGE_PATH"
+        log_success "Created storage directory: $STORAGE_PATH"
     fi
 
     # Set proper ownership and permissions for uploads
-    chown -R $ACTUAL_USER:$ACTUAL_USER "$PROJECT_DIR/public/posters"
-    chmod -R 755 "$PROJECT_DIR/public/posters"
-    log_success "Upload directory configured with proper permissions"
+    chown -R $ACTUAL_USER:$ACTUAL_USER "$STORAGE_PATH"
+    chmod -R 755 "$STORAGE_PATH"
+    log_success "Storage directory configured with proper permissions"
 
     log_info "Running production build..."
     su - $ACTUAL_USER -c "cd '$PROJECT_DIR' && pnpm run build"
@@ -419,6 +422,7 @@ Group=$ACTUAL_USER
 WorkingDirectory=$PROJECT_DIR
 Environment=NODE_ENV=production
 Environment=PORT=$APP_PORT
+Environment=POSTERS_STORAGE_PATH=/var/calendar-events/posters
 EnvironmentFile=$PROJECT_DIR/.env
 ExecStart=$(which pnpm) start
 Restart=always

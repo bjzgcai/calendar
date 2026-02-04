@@ -6,6 +6,9 @@ import path from "path";
 // Feature flag for S3 storage (default: false = use local storage)
 const USE_S3_STORAGE = process.env.ENABLE_S3_STORAGE === "true";
 
+// Local storage directory (outside public/ for production reliability)
+const POSTERS_DIR = process.env.POSTERS_STORAGE_PATH || path.join(process.cwd(), "storage", "posters");
+
 // Initialize S3 client (only if S3 is enabled)
 let s3Client: S3Client | null = null;
 let S3_BUCKET = "";
@@ -82,20 +85,19 @@ export async function POST(request: NextRequest) {
       imageUrl = `https://${S3_BUCKET}.s3.${region}.amazonaws.com/${uniqueFileName}`;
     } else {
       // ========== Local File Storage (Default) ==========
-      // Ensure public/posters directory exists
-      const postersDir = path.join(process.cwd(), "public", "posters");
+      // Ensure storage directory exists
       try {
-        await mkdir(postersDir, { recursive: true });
+        await mkdir(POSTERS_DIR, { recursive: true });
       } catch (error) {
         // Directory might already exist, ignore error
       }
 
-      // Save to public/posters directory
-      const publicPath = path.join(postersDir, uniqueFileName);
-      await writeFile(publicPath, buffer);
+      // Save to storage directory
+      const filePath = path.join(POSTERS_DIR, uniqueFileName);
+      await writeFile(filePath, buffer);
 
-      // Return URL accessible via Next.js static serving
-      imageUrl = `/posters/${uniqueFileName}`;
+      // Return API URL (served via /api/posters/[filename] route)
+      imageUrl = `/api/posters/${uniqueFileName}`;
     }
 
     return NextResponse.json({ imageUrl, fileKey });

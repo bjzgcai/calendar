@@ -96,4 +96,8 @@ Desktop.ini
 .vercel
 .turbo
 
+# Uploaded files (posters)
+storage/
+public/posters/
+
 .coze-logs
