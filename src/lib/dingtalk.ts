@@ -3,7 +3,8 @@
  */
 
 // DingTalk API 基础 URL
-const DINGTALK_API_BASE = "https://oapi.dingtalk.com";
+const DINGTALK_API_BASE = "https://api.dingtalk.com"; // v1.0 新版 API
+const DINGTALK_OAPI_BASE = "https://oapi.dingtalk.com"; // 旧版 API
 const DINGTALK_LOGIN_BASE = "https://login.dingtalk.com";
 
 // 环境变量
@@ -121,7 +122,7 @@ export async function getCorpAccessToken(): Promise<string> {
     appsecret: DINGTALK_CLIENT_SECRET,
   });
 
-  const response = await fetch(`${DINGTALK_API_BASE}/gettoken?${params.toString()}`, {
+  const response = await fetch(`${DINGTALK_OAPI_BASE}/gettoken?${params.toString()}`, {
     method: "GET",
   });
 
@@ -143,7 +144,7 @@ export async function getCorpAccessToken(): Promise<string> {
  * 获取用户详细信息（企业内部）
  */
 export async function getUserDetailByUserId(corpAccessToken: string, userId: string) {
-  const response = await fetch(`${DINGTALK_API_BASE}/topapi/v2/user/get`, {
+  const response = await fetch(`${DINGTALK_OAPI_BASE}/topapi/v2/user/get`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
