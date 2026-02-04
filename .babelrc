@@ -1,0 +1,17 @@
+{
+  "presets": [
+    [
+      "next/babel",
+      {
+        "preset-react": {
+          "development": true
+        }
+      }
+    ]
+  ],
+  "plugins": [],
+  "assumptions": {
+    "setPublicClassFields": true,
+    "noDocumentAll": true
+  }
+}
