@@ -8,10 +8,11 @@ const POSTERS_DIR = process.env.POSTERS_STORAGE_PATH || path.join(process.cwd(),
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { filename: string } }
+  { params }: { params: Promise<{ filename: string }> }
 ) {
   try {
-    const filename = params.filename;
+    // Await params in Next.js 16+
+    const { filename } = await params;
 
     // Security: prevent directory traversal attacks
     if (filename.includes("..") || filename.includes("/") || filename.includes("\\")) {
