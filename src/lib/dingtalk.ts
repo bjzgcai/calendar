@@ -52,10 +52,19 @@ export async function getAccessToken(code: string): Promise<{
 
   if (!response.ok) {
     const error = await response.text();
+    console.error("DingTalk token response error:", error);
     throw new Error(`Failed to get access token: ${error}`);
   }
 
-  return response.json();
+  const data = await response.json();
+  console.log("DingTalk token response:", JSON.stringify(data, null, 2));
+
+  // DingTalk API uses camelCase in response (accessToken, not access_token)
+  return {
+    access_token: data.accessToken || data.access_token,
+    expires_in: data.expireIn || data.expires_in,
+    refresh_token: data.refreshToken || data.refresh_token,
+  };
 }
 
 /**
@@ -78,10 +87,29 @@ export async function getUserInfo(accessToken: string): Promise<{
 
   if (!response.ok) {
     const error = await response.text();
+    console.error("DingTalk user info response error:", error);
     throw new Error(`Failed to get user info: ${error}`);
   }
 
-  return response.json();
+  const data = await response.json();
+  console.log("DingTalk user info response:", JSON.stringify(data, null, 2));
+
+  // Handle both direct response and nested response formats
+  const userInfo = data.result || data;
+
+  if (!userInfo.openId && !userInfo.unionid) {
+    console.error("Invalid user info structure:", data);
+    throw new Error("Invalid user info response from DingTalk");
+  }
+
+  return {
+    nick: userInfo.nick || userInfo.name || "DingTalk User",
+    unionId: userInfo.unionId || userInfo.unionid,
+    openId: userInfo.openId || userInfo.userid,
+    avatarUrl: userInfo.avatarUrl || userInfo.avatar,
+    mobile: userInfo.mobile,
+    email: userInfo.email,
+  };
 }
 
 /**
