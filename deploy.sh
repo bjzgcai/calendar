@@ -370,6 +370,18 @@ build_application() {
         log_success "Build cache cleaned"
     fi
 
+    # Ensure public/posters directory exists with proper permissions
+    log_info "Ensuring upload directory exists..."
+    if [ ! -d "$PROJECT_DIR/public/posters" ]; then
+        mkdir -p "$PROJECT_DIR/public/posters"
+        log_success "Created public/posters directory"
+    fi
+
+    # Set proper ownership and permissions for uploads
+    chown -R $ACTUAL_USER:$ACTUAL_USER "$PROJECT_DIR/public/posters"
+    chmod -R 755 "$PROJECT_DIR/public/posters"
+    log_success "Upload directory configured with proper permissions"
+
     log_info "Running production build..."
     su - $ACTUAL_USER -c "cd '$PROJECT_DIR' && pnpm run build"
 
