@@ -3,7 +3,7 @@ import { eventManager } from "@/storage/database/eventManager";
 import { addDays, addWeeks, addMonths, isWeekend } from "date-fns";
 import type { Event } from "@/storage/database";
 import { getOrganizationType } from "@/storage/database";
-import { getClientIp } from "@/lib/get-client-ip";
+import { getSession } from "@/lib/session";
 
 export async function GET(request: NextRequest) {
   try {
@@ -14,10 +14,13 @@ export async function GET(request: NextRequest) {
     const tags = searchParams.get("tags");
     const myEvents = searchParams.get("myEvents") === "true";
 
-    // 如果请求只查看"我的活动"，则获取当前用户的 IP 并过滤
-    let creatorIp: string | null | undefined = undefined;
+    // 如果请求只查看"我的活动"，则获取当前用户的 ID 并过滤
+    let creatorId: number | null | undefined = undefined;
     if (myEvents) {
-      creatorIp = getClientIp(request);
+      const session = await getSession();
+      if (session.isLoggedIn && session.userId) {
+        creatorId = session.userId;
+      }
     }
 
     const events = await eventManager.getAllEvents({
@@ -25,7 +28,7 @@ export async function GET(request: NextRequest) {
       endDate: endDate ? new Date(endDate) : undefined,
       organizer: organizer || undefined,
       tags: tags || undefined,
-      creatorIp,
+      creatorId,
     });
 
     // 转换为 FullCalendar 格式
@@ -60,8 +63,9 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    // 获取创建者的 IP 地址
-    const creatorIp = getClientIp(request);
+    // 获取当前登录用户的 ID
+    const session = await getSession();
+    const creatorId = session.isLoggedIn && session.userId ? session.userId : null;
 
     // 如果传入了 date, startHour, endHour，则构建 startTime 和 endTime
     const startTime = body.date && body.startHour
@@ -86,7 +90,7 @@ export async function POST(request: NextRequest) {
       tags: body.tags || "",
       recurrenceRule: body.recurrenceRule || "none",
       recurrenceEndDate: body.recurrenceEndDate ? new Date(body.recurrenceEndDate) : null,
-      creatorIp: creatorIp || null,
+      creatorId: creatorId,
     });
 
     // 如果有重复规则，生成重复活动
@@ -141,7 +145,7 @@ export async function POST(request: NextRequest) {
           tags: body.tags || "",
           recurrenceRule: body.recurrenceRule || "none",
           recurrenceEndDate: body.recurrenceEndDate ? new Date(body.recurrenceEndDate) : null,
-          creatorIp: creatorIp || null,
+          creatorId: creatorId,
         });
 
         createdEvents.push(repeatedEvent);

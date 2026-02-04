@@ -15,6 +15,13 @@
       "when": 1770170359167,
       "tag": "0001_superb_stark_industries",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1770196314568,
+      "tag": "0002_hot_ikaris",
+      "breakpoints": true
     }
   ]
 }

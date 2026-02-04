@@ -18,9 +18,9 @@ export class EventManager {
     endDate?: Date;
     organizer?: string;
     tags?: string;
-    creatorIp?: string | null;
+    creatorId?: number | null;
   }): Promise<Event[]> {
-    const { skip = 0, limit = 100, startDate, endDate, organizer, tags, creatorIp } = options || {};
+    const { skip = 0, limit = 100, startDate, endDate, organizer, tags, creatorId } = options || {};
     const db = await getDb();
 
     const conditions: SQL[] = [];
@@ -41,11 +41,11 @@ export class EventManager {
         conditions.push(like(events.tags, `%${tag.trim()}%`));
       });
     }
-    if (creatorIp !== undefined) {
-      if (creatorIp === null) {
-        conditions.push(isNull(events.creatorIp));
+    if (creatorId !== undefined) {
+      if (creatorId === null) {
+        conditions.push(isNull(events.creatorId));
       } else {
-        conditions.push(eq(events.creatorIp, creatorIp));
+        conditions.push(eq(events.creatorId, creatorId));
       }
     }
 

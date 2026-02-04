@@ -6,6 +6,7 @@ import { EventCalendar } from "@/components/event-calendar"
 import { EventDetail } from "@/components/event-detail"
 import { EventForm } from "@/components/event-form"
 import { EventFilter } from "@/components/event-filter"
+import { UserMenu } from "@/components/user-menu"
 import { CalendarEvent } from "@/types/calendar"
 
 export default function Home() {
@@ -119,13 +120,16 @@ export default function Home() {
                 查看学院内所有活动，及时了解最新动态
               </p>
             </div>
-            <button
-              onClick={() => setFormOpen(true)}
-              className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 py-2"
-            >
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              创建活动
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setFormOpen(true)}
+                className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 py-2"
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                创建活动
+              </button>
+              <UserMenu />
+            </div>
           </div>
         </div>
 

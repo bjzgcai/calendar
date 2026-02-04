@@ -1,5 +1,4 @@
-import { pgTable, serial, varchar, text, timestamp, pgEnum } from "drizzle-orm/pg-core"
-import { sql } from "drizzle-orm"
+import { pgTable, serial, varchar, text, timestamp, pgEnum, integer } from "drizzle-orm/pg-core"
 import { createSchemaFactory } from "drizzle-zod"
 import { z } from "zod"
 
@@ -18,6 +17,19 @@ export const organizationTypeEnum = pgEnum("organization_type", [
   "other",
 ])
 
+// 用户表 - 存储 DingTalk 用户信息
+export const users = pgTable("users", {
+  id: serial("id").primaryKey().notNull(),
+  dingtalkUserId: varchar("dingtalk_user_id", { length: 255 }).notNull().unique(),
+  dingtalkUnionId: varchar("dingtalk_union_id", { length: 255 }),
+  name: varchar("name", { length: 255 }).notNull(),
+  avatar: text("avatar"),
+  email: varchar("email", { length: 255 }),
+  mobile: varchar("mobile", { length: 50 }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+})
+
 export const events = pgTable("events", {
   id: serial("id").primaryKey().notNull(),
   title: varchar("title", { length: 255 }).notNull(),
@@ -32,7 +44,7 @@ export const events = pgTable("events", {
   tags: text("tags").notNull().default(""),
   recurrenceRule: recurrenceRuleEnum("recurrence_rule").notNull().default("none"),
   recurrenceEndDate: timestamp("recurrence_end_date", { withTimezone: true }),
-  creatorIp: varchar("creator_ip", { length: 45 }), // 支持 IPv4 和 IPv6
+  creatorId: integer("creator_id").references(() => users.id), // 创建者用户 ID（外键关联 users 表）
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 })
@@ -107,6 +119,14 @@ export type InsertEvent = z.infer<typeof insertEventSchema>
 export type UpdateEvent = z.infer<typeof updateEventSchema>
 export type RecurrenceRule = typeof recurrenceRuleEnum.enumValues[number]
 export type OrganizationType = typeof organizationTypeEnum.enumValues[number]
+
+// User schemas and types
+export const insertUserSchema = createCoercedInsertSchema(users)
+export const selectUserSchema = createCoercedSelectSchema(users)
+
+export type User = typeof users.$inferSelect
+export type NewUser = typeof users.$inferInsert
+export type InsertUser = z.infer<typeof insertUserSchema>
 
 // 机构类型对应的颜色
 export const ORGANIZATION_TYPE_COLORS = {

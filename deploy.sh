@@ -27,7 +27,7 @@ NC='\033[0m' # No Color
 # Configuration
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 APP_NAME="calendar-events"
-APP_PORT=5000
+APP_PORT=5002
 DB_NAME="calendar"
 DB_USER="calendar_user"
 DB_PASSWORD="calendar_pass"
