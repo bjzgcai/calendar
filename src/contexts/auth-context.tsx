@@ -30,8 +30,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const response = await fetch("/api/auth/user");
       if (response.ok) {
         const userData = await response.json();
+        console.log("=== 用户登录信息 ===");
+        console.log("用户ID:", userData.userId);
+        console.log("钉钉用户ID:", userData.dingtalkUserId);
+        console.log("用户名:", userData.name);
+        console.log("头像:", userData.avatar);
+        console.log("邮箱:", userData.email);
+        console.log("登录状态:", userData.isLoggedIn);
+        console.log("完整用户数据:", userData);
+        console.log("===================");
         setUser(userData);
       } else {
+        console.log("用户未登录或会话已过期");
         setUser(null);
       }
     } catch (error) {
