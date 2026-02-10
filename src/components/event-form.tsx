@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { SearchableSelect } from "@/components/ui/searchable-select"
-import { Calendar, Upload, X, Plus } from "lucide-react"
+import { Calendar, Upload, X, Plus, FlaskConical, BookOpen, PartyPopper, Handshake, FileText, Clock } from "lucide-react"
 import { ORGANIZER_OPTIONS } from "@/storage/database"
 
 const eventSchema = z.object({
@@ -23,7 +23,15 @@ const eventSchema = z.object({
   startHour: z.string().min(1, "开始时间不能为空"),
   endHour: z.string().min(1, "结束时间不能为空"),
   location: z.string().optional(),
-  organizer: z.string().min(1, "发起者不能为空"),
+  organizer: z.array(z.string()).min(1, "至少选择一个发起者"),
+  eventType: z.array(z.enum([
+    "academic_research",
+    "teaching_training",
+    "student_activities",
+    "industry_academia",
+    "administration",
+    "important_deadlines",
+  ])).optional(),
   tags: z.string().optional(),
   link: z.string().url().optional().or(z.literal("")),
   imageUrl: z.string().optional(),
@@ -56,6 +64,52 @@ const generateTimeOptions = () => {
 
 const TIME_OPTIONS = generateTimeOptions()
 
+// 活动类型配置
+const EVENT_TYPE_CONFIG = {
+  academic_research: {
+    label: "学术研究",
+    icon: FlaskConical,
+    color: "text-blue-600",
+    bgColor: "bg-blue-50",
+    description: "科研项目、学术讲座、研讨会、论文答辩等学术活动",
+  },
+  teaching_training: {
+    label: "教学培训",
+    icon: BookOpen,
+    color: "text-green-600",
+    bgColor: "bg-green-50",
+    description: "课程培训、技能工作坊、教学活动、在线课程等",
+  },
+  student_activities: {
+    label: "学生活动",
+    icon: PartyPopper,
+    color: "text-orange-600",
+    bgColor: "bg-orange-50",
+    description: "社团活动、文体比赛、学生聚会、校园文化活动等",
+  },
+  industry_academia: {
+    label: "产学研合作",
+    icon: Handshake,
+    color: "text-purple-600",
+    bgColor: "bg-purple-50",
+    description: "企业合作项目、实习宣讲、产业对接、校企联合活动等",
+  },
+  administration: {
+    label: "行政管理",
+    icon: FileText,
+    color: "text-gray-600",
+    bgColor: "bg-gray-50",
+    description: "部门会议、行政通知、制度培训、管理例会等",
+  },
+  important_deadlines: {
+    label: "重要截止",
+    icon: Clock,
+    color: "text-red-600",
+    bgColor: "bg-red-50",
+    description: "项目截止、报名截止、材料提交、重要节点提醒等",
+  },
+} as const
+
 // 表单内容组件
 function EventFormContent({
   register,
@@ -71,6 +125,8 @@ function EventFormContent({
   handleImageUpload,
   selectedOrganizer,
   setSelectedOrganizer,
+  selectedEventTypes,
+  setSelectedEventTypes,
   currentTag,
   setCurrentTag,
   tagList,
@@ -115,13 +171,63 @@ function EventFormContent({
                 options={ORGANIZER_OPTIONS}
                 value={selectedOrganizer}
                 onChange={(value) => {
-                  setSelectedOrganizer(value)
-                  setValue("organizer", value || "")
+                  const arrayValue = Array.isArray(value) ? value : (value ? [value] : [])
+                  setSelectedOrganizer(arrayValue.length > 0 ? arrayValue : undefined)
+                  setValue("organizer", arrayValue)
                 }}
                 allLabel="请选择发起者"
+                multiple={true}
+                required={true}
               />
               {errors.organizer && (
                 <p className="text-sm text-destructive">{errors.organizer.message}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <SearchableSelect
+                label="活动类型"
+                placeholder="请选择活动类型"
+                options={Object.keys(EVENT_TYPE_CONFIG).map(key => {
+                  const config = EVENT_TYPE_CONFIG[key as keyof typeof EVENT_TYPE_CONFIG]
+                  return config.label
+                })}
+                value={selectedEventTypes?.map((type: string) => {
+                  const config = EVENT_TYPE_CONFIG[type as keyof typeof EVENT_TYPE_CONFIG]
+                  return config?.label || type
+                })}
+                onChange={(value) => {
+                  const arrayValue = Array.isArray(value) ? value : (value ? [value] : [])
+                  // Convert labels back to keys
+                  const keys = arrayValue.map(label => {
+                    const entry = Object.entries(EVENT_TYPE_CONFIG).find(([_, config]) => config.label === label)
+                    return entry ? entry[0] : label
+                  })
+                  setSelectedEventTypes(keys.length > 0 ? keys : undefined)
+                  setValue("eventType", keys as any)
+                }}
+                allLabel="请选择活动类型"
+                multiple={true}
+                tooltipContent={
+                  <div className="space-y-2">
+                    <p className="font-semibold">活动类型说明</p>
+                    {Object.entries(EVENT_TYPE_CONFIG).map(([key, config]) => {
+                      const Icon = config.icon
+                      return (
+                        <div key={key} className="flex items-start gap-2 text-xs">
+                          <Icon className={`h-3.5 w-3.5 mt-0.5 flex-shrink-0 ${config.color}`} />
+                          <div>
+                            <span className="font-medium">{config.label}：</span>
+                            <span className="text-muted-foreground">{config.description}</span>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                }
+              />
+              {errors.eventType && (
+                <p className="text-sm text-destructive">{errors.eventType.message}</p>
               )}
             </div>
 
@@ -372,7 +478,8 @@ export function EventForm({
   const [imageKey, setImageKey] = useState<string>("")
   const [currentTag, setCurrentTag] = useState<string>("")
   const [tagList, setTagList] = useState<string[]>([])
-  const [selectedOrganizer, setSelectedOrganizer] = useState<string | undefined>(undefined)
+  const [selectedOrganizer, setSelectedOrganizer] = useState<string[] | undefined>(undefined)
+  const [selectedEventTypes, setSelectedEventTypes] = useState<string[] | undefined>(undefined)
 
   // 如果提供了 controlledOpen，使用它；否则使用内部状态
   const open = controlledOpen !== undefined ? controlledOpen : internalOpen
@@ -396,7 +503,8 @@ export function EventForm({
       startHour: "",
       endHour: "",
       location: "",
-      organizer: "",
+      organizer: [],
+      eventType: [],
       tags: "",
       link: "",
       recurrenceRule: "none",
@@ -417,12 +525,26 @@ export function EventForm({
       setTagList([])
       setCurrentTag("")
       setSelectedOrganizer(undefined)
+      setSelectedEventTypes(undefined)
     }
   }, [open, reset])
 
   // 当 initialValues 变化时，更新表单值和相关状态
   useEffect(() => {
     if (initialValues && open) {
+      // Convert comma-separated strings to arrays for multi-select fields
+      const organizerArray = initialValues.organizer
+        ? (typeof initialValues.organizer === 'string'
+            ? (initialValues.organizer as string).split(',').filter((s: string) => s.trim())
+            : Array.isArray(initialValues.organizer) ? initialValues.organizer : [initialValues.organizer as string])
+        : []
+
+      const eventTypeArray = initialValues.eventType
+        ? (typeof initialValues.eventType === 'string'
+            ? (initialValues.eventType as string).split(',').filter((s: string) => s.trim())
+            : Array.isArray(initialValues.eventType) ? initialValues.eventType : [initialValues.eventType])
+        : []
+
       // 使用 reset 而不是 setValue，确保表单状态正确更新
       reset({
         id: initialValues.id,
@@ -432,7 +554,8 @@ export function EventForm({
         startHour: initialValues.startHour || "",
         endHour: initialValues.endHour || "",
         location: initialValues.location || "",
-        organizer: initialValues.organizer || "",
+        organizer: organizerArray,
+        eventType: eventTypeArray as any,
         tags: initialValues.tags || "",
         link: initialValues.link || "",
         recurrenceRule: initialValues.recurrenceRule || "none",
@@ -450,10 +573,9 @@ export function EventForm({
         setTagList(tags)
       }
 
-      // 更新组织者
-      if (initialValues.organizer) {
-        setSelectedOrganizer(initialValues.organizer)
-      }
+      // 更新组织者和活动类型
+      setSelectedOrganizer(organizerArray.length > 0 ? organizerArray : undefined)
+      setSelectedEventTypes(eventTypeArray.length > 0 ? eventTypeArray : undefined)
     }
   }, [initialValues, open, reset])
 
@@ -544,6 +666,7 @@ export function EventForm({
     setTagList([])
     setCurrentTag("")
     setSelectedOrganizer(undefined)
+    setSelectedEventTypes(undefined)
   }
 
   const onSubmit = async (data: EventFormData) => {
@@ -571,6 +694,8 @@ export function EventForm({
         tags: allTags,
         imageUrl,
         recurrenceEndDate: data.recurrenceEndDate ? new Date(data.recurrenceEndDate) : null,
+        organizer: data.organizer.join(','), // Convert array to comma-separated string
+        eventType: data.eventType && data.eventType.length > 0 ? data.eventType.join(',') : null, // Convert array to comma-separated string
       }
 
       console.log("请求URL:", url)
@@ -637,6 +762,8 @@ export function EventForm({
             handleImageUpload={handleImageUpload}
             selectedOrganizer={selectedOrganizer}
             setSelectedOrganizer={setSelectedOrganizer}
+            selectedEventTypes={selectedEventTypes}
+            setSelectedEventTypes={setSelectedEventTypes}
             currentTag={currentTag}
             setCurrentTag={setCurrentTag}
             tagList={tagList}
@@ -672,6 +799,8 @@ export function EventForm({
           handleImageUpload={handleImageUpload}
           selectedOrganizer={selectedOrganizer}
           setSelectedOrganizer={setSelectedOrganizer}
+          selectedEventTypes={selectedEventTypes}
+          setSelectedEventTypes={setSelectedEventTypes}
           currentTag={currentTag}
           setCurrentTag={setCurrentTag}
           tagList={tagList}

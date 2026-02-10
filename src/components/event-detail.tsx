@@ -18,28 +18,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { CalendarEvent } from "@/types/calendar"
-
-// 机构类型对应的颜色
-const ORGANIZATION_TYPE_COLORS = {
-  center: {
-    bg: "bg-blue-100 dark:bg-blue-900/30",
-    text: "text-blue-700 dark:text-blue-300",
-    border: "border-blue-200 dark:border-blue-800",
-    calendarBg: "#3b82f6", // 蓝色系
-  },
-  club: {
-    bg: "bg-green-100 dark:bg-green-900/30",
-    text: "text-green-700 dark:text-green-300",
-    border: "border-green-200 dark:border-green-800",
-    calendarBg: "#22c55e", // 绿色系
-  },
-  other: {
-    bg: "bg-purple-100 dark:bg-purple-900/30",
-    text: "text-purple-700 dark:text-purple-300",
-    border: "border-purple-200 dark:border-purple-800",
-    calendarBg: "#a855f7", // 紫色系
-  },
-}
+import { getEventTypeColor } from "@/storage/database"
 
 interface EventDetailProps {
   event: CalendarEvent | null
@@ -95,9 +74,15 @@ export function EventDetail({ event, open, onOpenChange, onEventDeleted, onEvent
   }
 
   const tags = parseTags(event.extendedProps.tags)
-  const orgType = event.extendedProps.organizationType
-  const orgTypeColors = ORGANIZATION_TYPE_COLORS[orgType as keyof typeof ORGANIZATION_TYPE_COLORS] || ORGANIZATION_TYPE_COLORS.other
-  const orgTypeLabel = orgType === "center" ? "七大中心" : orgType === "club" ? "学生俱乐部" : "其他"
+
+  // Parse comma-separated organizers and event types
+  const organizers = event.extendedProps.organizer ? event.extendedProps.organizer.split(',').map(o => o.trim()) : []
+  const eventTypes = event.extendedProps.eventType ? event.extendedProps.eventType.split(',').map(t => t.trim()) : []
+
+  // Get first event type for the main badge (fallback behavior)
+  const primaryEventType = eventTypes[0] || event.extendedProps.eventType
+  const eventTypeColors = getEventTypeColor(primaryEventType as any)
+  const eventTypeLabel = eventTypeColors.label
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -105,9 +90,22 @@ export function EventDetail({ event, open, onOpenChange, onEventDeleted, onEvent
         <DialogHeader>
           <div className="flex items-start justify-between">
             <DialogTitle className="text-2xl pr-8">{event.title}</DialogTitle>
-            <Badge className={orgTypeColors.bg + " " + orgTypeColors.text}>
-              {orgTypeLabel}
-            </Badge>
+            <div className="flex flex-wrap gap-1 justify-end">
+              {eventTypes.length > 0 ? (
+                eventTypes.map((type, index) => {
+                  const colors = getEventTypeColor(type as any)
+                  return (
+                    <Badge key={index} className={colors.bg + " " + colors.text}>
+                      {colors.label}
+                    </Badge>
+                  )
+                })
+              ) : (
+                <Badge className={eventTypeColors.bg + " " + eventTypeColors.text}>
+                  {eventTypeLabel}
+                </Badge>
+              )}
+            </div>
           </div>
         </DialogHeader>
 
@@ -147,9 +145,15 @@ export function EventDetail({ event, open, onOpenChange, onEventDeleted, onEvent
           <div className="space-y-3">
             <div className="flex items-start gap-3">
               <User className="h-5 w-5 text-muted-foreground mt-0.5" />
-              <div>
+              <div className="flex-1">
                 <p className="font-medium">发起者</p>
-                <p className="text-sm text-muted-foreground">{event.extendedProps.organizer}</p>
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {organizers.map((org, index) => (
+                    <Badge key={index} variant="outline">
+                      {org}
+                    </Badge>
+                  ))}
+                </div>
               </div>
             </div>
 

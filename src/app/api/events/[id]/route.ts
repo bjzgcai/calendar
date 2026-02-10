@@ -43,6 +43,9 @@ export async function PUT(
       return NextResponse.json({ error: "Missing time information" }, { status: 400 });
     }
 
+    // organizer is now a comma-separated string, get the primary organizer for type
+    const primaryOrganizer = body.organizer?.split(',')[0]?.trim() || body.organizer;
+
     const updatedEvent = await eventManager.updateEvent(parseInt(id), {
       title: body.title,
       content: body.content,
@@ -51,8 +54,9 @@ export async function PUT(
       startTime,
       endTime,
       location: body.location,
-      organizer: body.organizer,
-      organizationType: getOrganizationType(body.organizer),
+      organizer: body.organizer, // Keep as comma-separated string
+      organizationType: getOrganizationType(primaryOrganizer),
+      eventType: body.eventType !== undefined ? body.eventType : undefined,
       tags: body.tags,
       recurrenceRule: body.recurrenceRule,
       recurrenceEndDate: body.recurrenceEndDate ? new Date(body.recurrenceEndDate) : null,

@@ -17,6 +17,16 @@ export const organizationTypeEnum = pgEnum("organization_type", [
   "other",
 ])
 
+// 活动性质枚举
+export const eventTypeEnum = pgEnum("event_type", [
+  "academic_research",      // 学术研究
+  "teaching_training",      // 教学培训
+  "student_activities",     // 学生活动
+  "industry_academia",      // 产学研合作
+  "administration",         // 行政管理
+  "important_deadlines",    // 重要截止
+])
+
 // 用户表 - 存储 DingTalk 用户信息
 export const users = pgTable("users", {
   id: serial("id").primaryKey().notNull(),
@@ -39,8 +49,9 @@ export const events = pgTable("events", {
   startTime: timestamp("start_time", { withTimezone: true }).notNull(),
   endTime: timestamp("end_time", { withTimezone: true }).notNull(),
   location: varchar("location", { length: 255 }),
-  organizer: varchar("organizer", { length: 255 }).notNull(),
+  organizer: text("organizer").notNull(), // Changed to text to store comma-separated values
   organizationType: organizationTypeEnum("organization_type"),
+  eventType: text("event_type"), // Changed to text to store comma-separated values
   tags: text("tags").notNull().default(""),
   recurrenceRule: recurrenceRuleEnum("recurrence_rule").notNull().default("none"),
   recurrenceEndDate: timestamp("recurrence_end_date", { withTimezone: true }),
@@ -119,6 +130,25 @@ export type InsertEvent = z.infer<typeof insertEventSchema>
 export type UpdateEvent = z.infer<typeof updateEventSchema>
 export type RecurrenceRule = typeof recurrenceRuleEnum.enumValues[number]
 export type OrganizationType = typeof organizationTypeEnum.enumValues[number]
+export type EventType = "academic_research" | "teaching_training" | "student_activities" | "industry_academia" | "administration" | "important_deadlines"
+
+// Helper functions for array field handling
+export function organziersToString(organizers: string[]): string {
+  return organizers.join(",")
+}
+
+export function stringToOrganizers(str: string): string[] {
+  return str ? str.split(",").filter(s => s.trim()) : []
+}
+
+export function eventTypesToString(types: EventType[]): string {
+  return types.join(",")
+}
+
+export function stringToEventTypes(str: string | null): EventType[] {
+  if (!str) return []
+  return str.split(",").filter(s => s.trim()) as EventType[]
+}
 
 // User schemas and types
 export const insertUserSchema = createCoercedInsertSchema(users)
@@ -128,25 +158,55 @@ export type User = typeof users.$inferSelect
 export type NewUser = typeof users.$inferInsert
 export type InsertUser = z.infer<typeof insertUserSchema>
 
-// 机构类型对应的颜色
-export const ORGANIZATION_TYPE_COLORS = {
-  center: {
+// 活动性质对应的颜色
+export const EVENT_TYPE_COLORS = {
+  academic_research: {
     bg: "bg-blue-100 dark:bg-blue-900/30",
     text: "text-blue-700 dark:text-blue-300",
     border: "border-blue-200 dark:border-blue-800",
-    calendarBg: "#3b82f6", // 蓝色系
+    calendarBg: "#3b82f6", // 蓝色
+    label: "学术研究",
+    description: "科研项目、学术讲座、研讨会、论文答辩等学术活动",
   },
-  club: {
+  teaching_training: {
     bg: "bg-green-100 dark:bg-green-900/30",
     text: "text-green-700 dark:text-green-300",
     border: "border-green-200 dark:border-green-800",
-    calendarBg: "#22c55e", // 绿色系
+    calendarBg: "#22c55e", // 绿色
+    label: "教学培训",
+    description: "课程培训、技能工作坊、教学活动、在线课程等",
   },
-  other: {
+  student_activities: {
+    bg: "bg-orange-100 dark:bg-orange-900/30",
+    text: "text-orange-700 dark:text-orange-300",
+    border: "border-orange-200 dark:border-orange-800",
+    calendarBg: "#f59e0b", // 橙黄色
+    label: "学生活动",
+    description: "社团活动、文体比赛、学生聚会、校园文化活动等",
+  },
+  industry_academia: {
     bg: "bg-purple-100 dark:bg-purple-900/30",
     text: "text-purple-700 dark:text-purple-300",
     border: "border-purple-200 dark:border-purple-800",
-    calendarBg: "#a855f7", // 紫色系
+    calendarBg: "#a855f7", // 紫色
+    label: "产学研合作",
+    description: "企业合作项目、实习宣讲、产业对接、校企联合活动等",
+  },
+  administration: {
+    bg: "bg-gray-100 dark:bg-gray-900/30",
+    text: "text-gray-700 dark:text-gray-300",
+    border: "border-gray-200 dark:border-gray-800",
+    calendarBg: "#6b7280", // 灰色
+    label: "行政管理",
+    description: "部门会议、行政通知、制度培训、管理例会等",
+  },
+  important_deadlines: {
+    bg: "bg-red-100 dark:bg-red-900/30",
+    text: "text-red-700 dark:text-red-300",
+    border: "border-red-200 dark:border-red-800",
+    calendarBg: "#ef4444", // 红色
+    label: "重要截止",
+    description: "项目截止、报名截止、材料提交、重要节点提醒等",
   },
 }
 
@@ -168,8 +228,16 @@ export const ORGANIZER_OPTIONS = [
   "其他",
 ]
 
+// 根据活动性质获取颜色
+export function getEventTypeColor(eventType: EventType | null | undefined) {
+  if (!eventType) {
+    return EVENT_TYPE_COLORS.student_activities // 默认使用学生活动颜色
+  }
+  return EVENT_TYPE_COLORS[eventType]
+}
+
 // 根据发起者名称判断机构类型
-export function getOrganizationType(organizer: string): "center" | "club" | "other" {
+export function getOrganizationType(organizer: string): OrganizationType {
   if (CENTERS.includes(organizer)) {
     return "center"
   }
@@ -177,10 +245,4 @@ export function getOrganizationType(organizer: string): "center" | "club" | "oth
     return "club"
   }
   return "other"
-}
-
-// 根据发起者名称获取颜色
-export function getOrganizerColor(organizer: string) {
-  const type = getOrganizationType(organizer)
-  return ORGANIZATION_TYPE_COLORS[type]
 }

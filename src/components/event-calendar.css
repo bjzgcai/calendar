@@ -91,6 +91,20 @@
   margin-bottom: 8px;
 }
 
+.event-tooltip-content {
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 13px;
+  line-height: 1.5;
+  margin-top: 8px;
+  margin-bottom: 8px;
+  /* Truncate to 3 rows */
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .event-tooltip-image {
   width: 100%;
   height: auto;

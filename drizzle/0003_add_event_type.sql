@@ -1,0 +1,2 @@
+CREATE TYPE "public"."event_type" AS ENUM('academic_research', 'teaching_training', 'student_activities', 'industry_academia', 'administration', 'important_deadlines');--> statement-breakpoint
+ALTER TABLE "events" ADD COLUMN "event_type" "event_type";

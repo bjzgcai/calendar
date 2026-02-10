@@ -168,3 +168,18 @@ body {
 .fc-toolbar-chunk {
   display: flex;
 }
+
+/* Today's date highlighting - Light yellow background */
+.fc .fc-day-today {
+  background-color: #fffbeb !important; /* Light mode: warm yellow */
+  border: 2px solid #fbbf24 !important; /* Amber border */
+}
+
+.dark .fc .fc-day-today {
+  background-color: rgba(254, 249, 231, 0.15) !important; /* Dark mode: subtle yellow */
+  border: 2px solid rgba(251, 191, 36, 0.5) !important;
+}
+
+.fc .fc-day-today .fc-daygrid-day-frame {
+  background-color: transparent;
+}

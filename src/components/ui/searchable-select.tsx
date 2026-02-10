@@ -1,19 +1,23 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { Check, ChevronDown, X } from "lucide-react"
+import { Check, ChevronDown, X, Info } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 
 interface SearchableSelectProps {
   label: string
   placeholder?: string
   options: string[]
-  value?: string
-  onChange: (value: string | undefined) => void
+  value?: string | string[]
+  onChange: (value: string | string[] | undefined) => void
   allLabel?: string
+  tooltipContent?: React.ReactNode
+  multiple?: boolean
+  required?: boolean
 }
 
 export function SearchableSelect({
@@ -23,6 +27,9 @@ export function SearchableSelect({
   value,
   onChange,
   allLabel = "全部",
+  tooltipContent,
+  multiple = false,
+  required = false,
 }: SearchableSelectProps) {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState("")
@@ -33,20 +40,41 @@ export function SearchableSelect({
   )
 
   const selectedValue = value === "" ? undefined : value
+  const selectedArray = multiple ? (Array.isArray(value) ? value : (value ? [value] : [])) : []
 
   const handleSelect = (option: string) => {
-    if (option === "") {
-      onChange(undefined)
+    if (multiple) {
+      // Multi-select mode
+      if (option === "") {
+        onChange(undefined)
+      } else {
+        const newSelection = selectedArray.includes(option)
+          ? selectedArray.filter(v => v !== option)
+          : [...selectedArray, option]
+
+        onChange(newSelection.length > 0 ? newSelection : undefined)
+      }
     } else {
-      onChange(option)
+      // Single select mode
+      if (option === "") {
+        onChange(undefined)
+      } else {
+        onChange(option)
+      }
+      setOpen(false)
+      setSearch("")
     }
-    setOpen(false)
-    setSearch("")
   }
 
   const handleClear = (e: React.MouseEvent) => {
     e.stopPropagation()
     onChange(undefined)
+  }
+
+  const removeItem = (e: React.MouseEvent, item: string) => {
+    e.stopPropagation()
+    const newSelection = selectedArray.filter(v => v !== item)
+    onChange(newSelection.length > 0 ? newSelection : undefined)
   }
 
   // 点击外部关闭
@@ -62,30 +90,64 @@ export function SearchableSelect({
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [])
 
+  const displayText = multiple && selectedArray.length > 0
+    ? `已选择 ${selectedArray.length} 项`
+    : (selectedValue || placeholder)
+
   return (
     <div className="space-y-2" ref={containerRef}>
-      <Label>{label}</Label>
+      <div className="flex items-center gap-1">
+        <Label>
+          {label}
+          {required && <span className="text-destructive ml-1">*</span>}
+        </Label>
+        {tooltipContent && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+            </TooltipTrigger>
+            <TooltipContent side="right" className="max-w-xs">
+              {tooltipContent}
+            </TooltipContent>
+          </Tooltip>
+        )}
+      </div>
       <div className="relative">
         <Button
           type="button"
           variant="outline"
           className={cn(
-            "w-full justify-between h-9 px-3 text-left font-normal",
-            !selectedValue && "text-muted-foreground"
+            "w-full justify-between h-auto min-h-9 px-3 py-2 text-left font-normal",
+            !selectedValue && !selectedArray.length && "text-muted-foreground"
           )}
           onClick={() => setOpen(!open)}
         >
-          <span className="truncate">
-            {selectedValue || placeholder}
-          </span>
-          <div className="flex items-center gap-2">
-            {selectedValue && (
+          <div className="flex-1 flex flex-wrap gap-1">
+            {multiple && selectedArray.length > 0 ? (
+              selectedArray.map((item) => (
+                <span
+                  key={item}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 bg-primary/10 text-primary rounded text-sm"
+                >
+                  {item}
+                  <X
+                    className="h-3 w-3 hover:bg-primary/20 rounded"
+                    onClick={(e) => removeItem(e, item)}
+                  />
+                </span>
+              ))
+            ) : (
+              <span className="truncate">{displayText}</span>
+            )}
+          </div>
+          <div className="flex items-center gap-2 ml-2">
+            {(selectedValue || selectedArray.length > 0) && (
               <X
-                className="h-4 w-4 hover:bg-accent rounded"
+                className="h-4 w-4 hover:bg-accent rounded flex-shrink-0"
                 onClick={handleClear}
               />
             )}
-            <ChevronDown className="h-4 w-4" />
+            <ChevronDown className="h-4 w-4 flex-shrink-0" />
           </div>
         </Button>
 
@@ -101,31 +163,39 @@ export function SearchableSelect({
               />
             </div>
             <div className="py-1">
-              <button
-                type="button"
-                className={cn(
-                  "w-full px-3 py-2 text-left text-sm hover:bg-accent flex items-center justify-between",
-                  !selectedValue && "bg-accent"
-                )}
-                onClick={() => handleSelect("")}
-              >
-                {allLabel}
-                {!selectedValue && <Check className="h-4 w-4" />}
-              </button>
-              {filteredOptions.map((option) => (
+              {!multiple && (
                 <button
-                  key={option}
                   type="button"
                   className={cn(
                     "w-full px-3 py-2 text-left text-sm hover:bg-accent flex items-center justify-between",
-                    selectedValue === option && "bg-accent"
+                    !selectedValue && "bg-accent"
                   )}
-                  onClick={() => handleSelect(option)}
+                  onClick={() => handleSelect("")}
                 >
-                  <span className="truncate">{option}</span>
-                  {selectedValue === option && <Check className="h-4 w-4" />}
+                  {allLabel}
+                  {!selectedValue && <Check className="h-4 w-4" />}
                 </button>
-              ))}
+              )}
+              {filteredOptions.map((option) => {
+                const isSelected = multiple
+                  ? selectedArray.includes(option)
+                  : selectedValue === option
+
+                return (
+                  <button
+                    key={option}
+                    type="button"
+                    className={cn(
+                      "w-full px-3 py-2 text-left text-sm hover:bg-accent flex items-center justify-between",
+                      isSelected && "bg-accent"
+                    )}
+                    onClick={() => handleSelect(option)}
+                  >
+                    <span className="truncate">{option}</span>
+                    {isSelected && <Check className="h-4 w-4" />}
+                  </button>
+                )
+              })}
               {filteredOptions.length === 0 && (
                 <div className="px-3 py-2 text-sm text-muted-foreground text-center">
                   无匹配项

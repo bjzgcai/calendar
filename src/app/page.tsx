@@ -14,7 +14,8 @@ export default function Home() {
   const [detailOpen, setDetailOpen] = useState(false)
   const [formOpen, setFormOpen] = useState(false)
   const [initialFormValues, setInitialFormValues] = useState<any>(undefined)
-  const [organizerFilter, setOrganizerFilter] = useState<string | undefined>()
+  const [eventTypeFilter, setEventTypeFilter] = useState<string | string[] | undefined>()
+  const [organizerFilter, setOrganizerFilter] = useState<string | string[] | undefined>()
   const [tagsFilter, setTagsFilter] = useState<string[]>([])
   const [myEventsFilter, setMyEventsFilter] = useState<boolean>(false)
   const [refreshKey, setRefreshKey] = useState(0)
@@ -77,6 +78,7 @@ export default function Home() {
       endHour: formatTime(endDate),
       location: event.extendedProps.location || "",
       organizer: event.extendedProps.organizer,
+      eventType: event.extendedProps.eventType,
       tags: event.extendedProps.tags || "",
       imageUrl: event.extendedProps.imageUrl || "",
       link: event.extendedProps.link || "",
@@ -138,6 +140,7 @@ export default function Home() {
           <div className="lg:col-span-1">
             <EventFilter
               key={refreshKey}
+              onEventTypeChange={setEventTypeFilter}
               onOrganizerChange={setOrganizerFilter}
               onTagsChange={setTagsFilter}
               onMyEventsChange={setMyEventsFilter}
@@ -150,6 +153,7 @@ export default function Home() {
               key={refreshKey}
               onEventClick={handleEventClick}
               onTimeSlotSelect={handleTimeSlotSelect}
+              eventTypeFilter={eventTypeFilter}
               organizerFilter={organizerFilter}
               tagsFilter={tagsFilter}
               myEventsFilter={myEventsFilter}

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { eventManager } from "@/storage/database/eventManager";
 import { addDays, addWeeks, addMonths, isWeekend } from "date-fns";
 import type { Event } from "@/storage/database";
-import { getOrganizationType } from "@/storage/database";
+import { EVENT_TYPE_COLORS, getEventTypeColor, getOrganizationType } from "@/storage/database";
 import { getSession } from "@/lib/session";
 
 export async function GET(request: NextRequest) {
@@ -10,6 +10,7 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
+    const eventType = searchParams.get("eventType");
     const organizer = searchParams.get("organizer");
     const tags = searchParams.get("tags");
     const myEvents = searchParams.get("myEvents") === "true";
@@ -26,31 +27,36 @@ export async function GET(request: NextRequest) {
     const events = await eventManager.getAllEvents({
       startDate: startDate ? new Date(startDate) : undefined,
       endDate: endDate ? new Date(endDate) : undefined,
+      eventType: eventType || undefined,
       organizer: organizer || undefined,
       tags: tags || undefined,
       creatorId,
     });
 
     // 转换为 FullCalendar 格式
-    const calendarEvents = events.map((event: Event) => ({
-      id: event.id.toString(),
-      title: event.title,
-      start: event.startTime.toISOString(),
-      end: event.endTime.toISOString(),
-      backgroundColor: event.organizationType === "center" ? "#3b82f6" :
-                      event.organizationType === "club" ? "#22c55e" :
-                      "#a855f7",
-      extendedProps: {
-        content: event.content,
-        imageUrl: event.imageUrl,
-        link: event.link,
-        location: event.location,
-        organizer: event.organizer,
-        organizationType: event.organizationType,
-        tags: event.tags,
-        recurrenceRule: event.recurrenceRule,
-      },
-    }));
+    const calendarEvents = events.map((event: Event) => {
+      // Get primary event type for background color (first in comma-separated list)
+      const primaryEventType = event.eventType ? event.eventType.split(',')[0]?.trim() : null
+
+      return {
+        id: event.id.toString(),
+        title: event.title,
+        start: event.startTime.toISOString(),
+        end: event.endTime.toISOString(),
+        backgroundColor: getEventTypeColor(primaryEventType as any).calendarBg,
+        extendedProps: {
+          content: event.content,
+          imageUrl: event.imageUrl,
+          link: event.link,
+          location: event.location,
+          organizer: event.organizer,
+          organizationType: event.organizationType,
+          eventType: event.eventType,
+          tags: event.tags,
+          recurrenceRule: event.recurrenceRule,
+        },
+      }
+    });
 
     return NextResponse.json(calendarEvents);
   } catch (error) {
@@ -77,6 +83,9 @@ export async function POST(request: NextRequest) {
       : body.endTime;
 
     // 创建主活动（根据发起者自动判断机构类型）
+    // organizer is now a comma-separated string, get the primary organizer for type
+    const primaryOrganizer = body.organizer.split(',')[0]?.trim() || body.organizer;
+
     const newEvent = await eventManager.createEvent({
       title: body.title,
       content: body.content,
@@ -85,8 +94,9 @@ export async function POST(request: NextRequest) {
       startTime,
       endTime,
       location: body.location || null,
-      organizer: body.organizer,
-      organizationType: getOrganizationType(body.organizer),
+      organizer: body.organizer, // Keep as comma-separated string
+      organizationType: getOrganizationType(primaryOrganizer),
+      eventType: body.eventType || null,
       tags: body.tags || "",
       recurrenceRule: body.recurrenceRule || "none",
       recurrenceEndDate: body.recurrenceEndDate ? new Date(body.recurrenceEndDate) : null,
@@ -140,8 +150,9 @@ export async function POST(request: NextRequest) {
           startTime: nextStartTime,
           endTime: nextEndTime,
           location: body.location || null,
-          organizer: body.organizer,
-          organizationType: getOrganizationType(body.organizer),
+          organizer: body.organizer, // Keep as comma-separated string
+          organizationType: getOrganizationType(primaryOrganizer),
+          eventType: body.eventType || null,
           tags: body.tags || "",
           recurrenceRule: body.recurrenceRule || "none",
           recurrenceEndDate: body.recurrenceEndDate ? new Date(body.recurrenceEndDate) : null,

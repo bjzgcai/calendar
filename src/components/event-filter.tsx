@@ -9,7 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { ORGANIZER_OPTIONS } from "@/storage/database"
+import { ORGANIZER_OPTIONS, EVENT_TYPE_COLORS, EventType } from "@/storage/database"
 
 interface TagWithCount {
   name: string
@@ -17,18 +17,26 @@ interface TagWithCount {
 }
 
 interface EventFilterProps {
-  onOrganizerChange: (organizer: string | undefined) => void
+  onEventTypeChange: (eventType: string | string[] | undefined) => void
+  onOrganizerChange: (organizer: string | string[] | undefined) => void
   onTagsChange: (tags: string[]) => void
   onMyEventsChange: (myEvents: boolean) => void
 }
 
-export function EventFilter({ onOrganizerChange, onTagsChange, onMyEventsChange }: EventFilterProps) {
+export function EventFilter({ onEventTypeChange, onOrganizerChange, onTagsChange, onMyEventsChange }: EventFilterProps) {
   const [tags, setTags] = useState<TagWithCount[]>([])
-  const [selectedOrganizer, setSelectedOrganizer] = useState<string | undefined>(undefined)
+  const [selectedEventType, setSelectedEventType] = useState<string[] | undefined>(undefined)
+  const [selectedOrganizer, setSelectedOrganizer] = useState<string[] | undefined>(undefined)
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [myEvents, setMyEvents] = useState<boolean>(false)
   const [tagSearchQuery, setTagSearchQuery] = useState<string>("")
   const [showAllTags, setShowAllTags] = useState<boolean>(false)
+
+  // 活动类型选项（根据 EVENT_TYPE_COLORS 生成）
+  const eventTypeOptions = Object.entries(EVENT_TYPE_COLORS).map(([value, config]) => ({
+    value,
+    label: config.label,
+  }))
 
   // 发起者使用固定选项
   const organizers = ORGANIZER_OPTIONS
@@ -50,9 +58,16 @@ export function EventFilter({ onOrganizerChange, onTagsChange, onMyEventsChange 
     fetchData()
   }, [])
 
-  const handleOrganizerChange = (organizer: string | undefined) => {
-    setSelectedOrganizer(organizer)
-    onOrganizerChange(organizer)
+  const handleEventTypeChange = (eventType: string | string[] | undefined) => {
+    const arrayValue = Array.isArray(eventType) ? eventType : (eventType ? [eventType] : undefined)
+    setSelectedEventType(arrayValue)
+    onEventTypeChange(arrayValue)
+  }
+
+  const handleOrganizerChange = (organizer: string | string[] | undefined) => {
+    const arrayValue = Array.isArray(organizer) ? organizer : (organizer ? [organizer] : undefined)
+    setSelectedOrganizer(arrayValue)
+    onOrganizerChange(arrayValue)
   }
 
   const handleAddTag = (tag: string) => {
@@ -76,9 +91,11 @@ export function EventFilter({ onOrganizerChange, onTagsChange, onMyEventsChange 
   }
 
   const handleClear = () => {
+    setSelectedEventType(undefined)
     setSelectedOrganizer(undefined)
     setSelectedTags([])
     setMyEvents(false)
+    onEventTypeChange(undefined)
     onOrganizerChange(undefined)
     onTagsChange([])
     onMyEventsChange(false)
@@ -93,7 +110,7 @@ export function EventFilter({ onOrganizerChange, onTagsChange, onMyEventsChange 
   // Show top 5 tags or all if showAllTags is true
   const displayedTags = showAllTags ? filteredTags : filteredTags.slice(0, 5)
 
-  const hasFilters = selectedOrganizer !== undefined || selectedTags.length > 0 || myEvents
+  const hasFilters = (selectedEventType && selectedEventType.length > 0) || (selectedOrganizer && selectedOrganizer.length > 0) || selectedTags.length > 0 || myEvents
 
   return (
     <Card>
@@ -127,12 +144,49 @@ export function EventFilter({ onOrganizerChange, onTagsChange, onMyEventsChange 
           </div>
 
           <SearchableSelect
+            label="活动类型"
+            placeholder="全部类型"
+            options={eventTypeOptions.map(opt => opt.label)}
+            value={selectedEventType?.map(type => EVENT_TYPE_COLORS[type as EventType]?.label)}
+            onChange={(labels) => {
+              const arrayLabels = Array.isArray(labels) ? labels : (labels ? [labels] : [])
+              const eventTypes = arrayLabels.map(label => {
+                const opt = eventTypeOptions.find(o => o.label === label)
+                return opt?.value
+              }).filter((v): v is string => v !== undefined)
+              handleEventTypeChange(eventTypes.length > 0 ? eventTypes : undefined)
+            }}
+            allLabel="全部类型"
+            multiple={true}
+            tooltipContent={
+              <div className="space-y-2.5 py-1">
+                <div className="font-semibold text-xs mb-2">活动类型说明</div>
+                {Object.entries(EVENT_TYPE_COLORS).map(([key, config]) => (
+                  <div key={key} className="flex items-start gap-2 text-xs">
+                    <div
+                      className="w-3 h-3 rounded-sm mt-0.5 flex-shrink-0"
+                      style={{ backgroundColor: config.calendarBg }}
+                    />
+                    <div>
+                      <div className="font-medium">{config.label}</div>
+                      <div className="text-[10px] text-muted-foreground mt-0.5 leading-tight">
+                        {config.description}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            }
+          />
+
+          <SearchableSelect
             label="发起者"
             placeholder="全部发起者"
             options={organizers}
             value={selectedOrganizer}
             onChange={handleOrganizerChange}
             allLabel="全部发起者"
+            multiple={true}
           />
 
           <div className="space-y-2">

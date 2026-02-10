@@ -1,7 +1,7 @@
-import { eq, and, SQL, gte, lte, like, isNull } from "drizzle-orm";
+import { eq, and, SQL, gte, lte, like, isNull, or } from "drizzle-orm";
 import { getDb } from "coze-coding-dev-sdk";
 import { events, insertEventWithCoercionSchema, updateEventWithCoercionSchema } from "./shared/schema";
-import type { Event, InsertEvent, UpdateEvent } from "./shared/schema";
+import type { Event, InsertEvent, UpdateEvent, EventType } from "./shared/schema";
 
 export class EventManager {
   async createEvent(data: InsertEvent): Promise<Event> {
@@ -16,11 +16,12 @@ export class EventManager {
     limit?: number;
     startDate?: Date;
     endDate?: Date;
+    eventType?: string;
     organizer?: string;
     tags?: string;
     creatorId?: number | null;
   }): Promise<Event[]> {
-    const { skip = 0, limit = 100, startDate, endDate, organizer, tags, creatorId } = options || {};
+    const { skip = 0, limit = 100, startDate, endDate, eventType, organizer, tags, creatorId } = options || {};
     const db = await getDb();
 
     const conditions: SQL[] = [];
@@ -31,8 +32,25 @@ export class EventManager {
     if (endDate) {
       conditions.push(lte(events.endTime, endDate));
     }
+    if (eventType) {
+      // eventType can be comma-separated values, match any of them
+      const typeList = eventType.split(',').filter(t => t.trim());
+      if (typeList.length > 0) {
+        const typeConditions = typeList.map(type =>
+          like(events.eventType, `%${type.trim()}%`)
+        );
+        conditions.push(or(...typeConditions) as SQL);
+      }
+    }
     if (organizer) {
-      conditions.push(eq(events.organizer, organizer));
+      // organizer can be comma-separated values, match any of them
+      const organizerList = organizer.split(',').filter(o => o.trim());
+      if (organizerList.length > 0) {
+        const organizerConditions = organizerList.map(org =>
+          like(events.organizer, `%${org.trim()}%`)
+        );
+        conditions.push(or(...organizerConditions) as SQL);
+      }
     }
     if (tags) {
       // Support multiple tags separated by comma (AND logic)

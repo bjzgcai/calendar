@@ -17,12 +17,13 @@ import { CalendarEvent } from "@/types/calendar"
 interface EventCalendarProps {
   onEventClick?: (event: CalendarEvent) => void
   onTimeSlotSelect?: (start: Date, end: Date) => void
-  organizerFilter?: string
+  eventTypeFilter?: string | string[]
+  organizerFilter?: string | string[]
   tagsFilter?: string[]
   myEventsFilter?: boolean
 }
 
-export function EventCalendar({ onEventClick, onTimeSlotSelect, organizerFilter, tagsFilter, myEventsFilter }: EventCalendarProps) {
+export function EventCalendar({ onEventClick, onTimeSlotSelect, eventTypeFilter, organizerFilter, tagsFilter, myEventsFilter }: EventCalendarProps) {
   const [events, setEvents] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const isDesktop = useMediaQuery("(min-width: 768px)")
@@ -38,11 +39,27 @@ export function EventCalendar({ onEventClick, onTimeSlotSelect, organizerFilter,
     setLoading(true)
     try {
       const params = new URLSearchParams()
-      if (organizerFilter) params.append("organizer", organizerFilter)
+
+      // Convert array to comma-separated string for API
+      if (eventTypeFilter) {
+        const eventTypeStr = Array.isArray(eventTypeFilter)
+          ? eventTypeFilter.join(",")
+          : eventTypeFilter
+        params.append("eventType", eventTypeStr)
+      }
+
+      if (organizerFilter) {
+        const organizerStr = Array.isArray(organizerFilter)
+          ? organizerFilter.join(",")
+          : organizerFilter
+        params.append("organizer", organizerStr)
+      }
+
       if (tagsFilter && tagsFilter.length > 0) {
         // Join multiple tags with comma for AND filtering
         params.append("tags", tagsFilter.join(","))
       }
+
       if (myEventsFilter) params.append("myEvents", "true")
 
       const response = await fetch(`/api/events?${params.toString()}`)
@@ -55,7 +72,7 @@ export function EventCalendar({ onEventClick, onTimeSlotSelect, organizerFilter,
     } finally {
       setLoading(false)
     }
-  }, [organizerFilter, tagsFilter, myEventsFilter])
+  }, [eventTypeFilter, organizerFilter, tagsFilter, myEventsFilter])
 
   useEffect(() => {
     fetchEvents()
@@ -75,6 +92,7 @@ export function EventCalendar({ onEventClick, onTimeSlotSelect, organizerFilter,
         location: event.extendedProps.location,
         organizer: event.extendedProps.organizer,
         organizationType: event.extendedProps.organizationType || "other",
+        eventType: event.extendedProps.eventType,
         tags: event.extendedProps.tags,
         recurrenceRule: event.extendedProps.recurrenceRule,
       },
@@ -125,6 +143,7 @@ export function EventCalendar({ onEventClick, onTimeSlotSelect, organizerFilter,
 
     const timeStr = `${formatTime(startTime)} - ${formatTime(endTime)}`
     const imageUrl = event.extendedProps?.imageUrl
+    const content = event.extendedProps?.content || ""
 
     // 创建富文本提示内容
     const tooltipContent = `
@@ -135,6 +154,13 @@ export function EventCalendar({ onEventClick, onTimeSlotSelect, organizerFilter,
         <div class="event-tooltip-time">
           ${timeStr}
         </div>
+        ${
+          content
+            ? `<div class="event-tooltip-content">
+                ${content}
+              </div>`
+            : ""
+        }
         ${
           imageUrl
             ? `<img
