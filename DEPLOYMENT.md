@@ -10,62 +10,80 @@ sudo ./deploy.sh
 
 That's it! The script will handle everything automatically.
 
+**Key Features:**
+- **Automatic Port Detection**: Script starts with port 5002 and auto-increments if occupied
+- **Persistent Storage**: File uploads saved to `/var/calendar-events/posters` (survives deployments)
+- **Clean Builds**: Always rebuilds from scratch to prevent stale schema issues
+- **Idempotent**: Safe to run multiple times, skips already-completed steps
+
 ## What the Script Does
 
 The `deploy.sh` script is fully idempotent and will:
 
-1. **Check and Install Node.js** (v20 LTS)
+1. **Install lsof** (if not present)
+   - Required for port availability checking
+
+2. **Check Port Availability**
+   - Default port: 5002
+   - Auto-increments to next available port if occupied
+   - Updates .env with selected port
+
+3. **Check and Install Node.js** (v20 LTS)
    - Skips if Node.js >= v20 is already installed
    - Uses NodeSource repository for installation
 
-2. **Check and Install PostgreSQL**
+4. **Check and Install PostgreSQL**
    - Skips if already installed
    - Starts and enables the service
 
-3. **Setup Database**
+5. **Setup Database**
    - Creates database: `calendar`
    - Creates user: `calendar_user` with password `calendar_pass`
    - Grants necessary privileges
    - Skips if already exists
 
-4. **Check and Install pnpm**
+6. **Check and Install pnpm**
    - Skips if already installed
    - Required package manager for this project
 
-5. **Setup Environment Variables**
+7. **Setup Environment Variables**
    - Creates `.env` file with database connection
    - Preserves existing configuration if present
+   - Sets PORT to available port (5002 or higher)
    - Sets secure file permissions (600)
 
-6. **Install Dependencies**
+8. **Install Dependencies**
    - Runs `pnpm install`
    - Uses frozen lockfile if dependencies exist
 
-7. **Run Database Migrations**
+9. **Run Database Migrations**
    - Executes Drizzle ORM migrations
    - Creates/updates database schema
 
-8. **Build Application**
-   - Runs Next.js production build
-   - Skips if recent build exists (< 1 hour old)
+10. **Build Application**
+    - Always cleans build cache (.next) to prevent stale schema issues
+    - Creates persistent storage directory at `/var/calendar-events/posters`
+    - Sets proper ownership and permissions
+    - Runs Next.js production build
 
-9. **Setup Systemd Service**
-   - Creates robust service configuration
-   - Enables auto-start on system boot
-   - Configures automatic restart on failure
-   - Sets resource limits and security hardening
+11. **Setup Systemd Service**
+    - Creates robust service configuration
+    - Enables auto-start on system boot
+    - Configures automatic restart on failure
+    - Sets POSTERS_STORAGE_PATH environment variable
+    - Sets resource limits and security hardening
 
-10. **Start/Restart Application**
+12. **Start/Restart Application**
     - Starts the service if not running
     - Restarts if already running
-    - Verifies successful startup
+    - Verifies successful startup with retries
 
 ## Requirements
 
 - **OS**: Ubuntu/Debian-based Linux distribution
 - **Privileges**: Root access (use `sudo`)
 - **Network**: Internet connection (for package installation)
-- **Ports**: Port 5000 must be available
+- **Ports**: Port 5002 (default) - script will auto-increment if occupied
 
 ## Manual Installation Steps
 
@@ -113,7 +131,7 @@ Create `.env` file:
 cat > .env << 'EOF'
 DATABASE_URL=postgresql://calendar_user:calendar_pass@localhost:5432/calendar
 PGDATABASE_URL=postgresql://calendar_user:calendar_pass@localhost:5432/calendar
-PORT=5000
+PORT=5002
 NODE_ENV=production
 EOF
 ```
@@ -133,6 +151,13 @@ pnpm exec drizzle-kit push
 ### 8. Build Application
 
 ```bash
+# Create persistent storage directory
+sudo mkdir -p /var/calendar-events/posters
+sudo chown -R $USER:$USER /var/calendar-events/posters
+sudo chmod -R 755 /var/calendar-events/posters
+
+# Clean build cache and build
+rm -rf .next
 pnpm run build
 ```
 
@@ -192,14 +217,16 @@ sudo systemctl enable calendar-events
 Once deployed, the application will be available at:
 
 ```
-http://localhost:5000
+http://localhost:5002
 ```
 
 Or from other machines (replace with your server IP):
 
 ```
-http://YOUR_SERVER_IP:5000
+http://YOUR_SERVER_IP:5002
 ```
+
+**Note**: If port 5002 was already in use during deployment, the script automatically increments to the next available port (5003, 5004, etc.). Check the deployment output or `.env` file for the actual port used.
 
 ## Configuration
 
@@ -224,8 +251,11 @@ DATABASE_URL=postgresql://user:pass@host:port/database
 PGDATABASE_URL=postgresql://user:pass@host:port/database
 
 # Optional
-PORT=5000
+PORT=5002
 NODE_ENV=production
+
+# Storage Configuration
+POSTERS_STORAGE_PATH=/var/calendar-events/posters  # Default if not set
 
 # DingTalk Integration (Optional)
 DINGTALK_APP_ID=your_app_id
@@ -245,10 +275,11 @@ sudo journalctl -u calendar-events -n 50
 ```
 
 Common issues:
-- Port 5000 already in use
+- Port already in use (script auto-increments, check .env for actual port)
 - Database connection failed
 - Missing environment variables
 - Build errors
+- Storage directory permission issues
 
 ### Database Connection Errors
 
@@ -264,14 +295,24 @@ psql -U calendar_user -d calendar -h localhost
 
 ### Port Already in Use
 
-Find what's using port 5000:
+The deployment script automatically handles this by incrementing to the next available port. If you need to manually change the port:
+
+1. Find what's using the port:
 ```bash
-sudo lsof -i :5000
+sudo lsof -i :5002
 ```
 
-Kill the process or change the port in `.env`:
+2. Update `.env`:
 ```bash
-PORT=5001
+PORT=5003
+```
+
+3. Update systemd service:
+```bash
+sudo nano /etc/systemd/system/calendar-events.service
+# Change the PORT environment variable
+sudo systemctl daemon-reload
+sudo systemctl restart calendar-events
 ```
 
 ### Permission Errors
@@ -280,6 +321,33 @@ Ensure correct file ownership:
 ```bash
 sudo chown -R $USER:$USER /home/carter/calendar
 ```
+
+### Storage Directory Issues
+
+If file uploads fail, check storage directory permissions:
+```bash
+# Check if directory exists
+ls -la /var/calendar-events/posters
+
+# Fix permissions if needed
+sudo mkdir -p /var/calendar-events/posters
+sudo chown -R $USER:$USER /var/calendar-events/posters
+sudo chmod -R 755 /var/calendar-events/posters
+```
+
+### Troubleshooting Script
+
+For comprehensive diagnostics, run:
+```bash
+sudo ./troubleshoot.sh
+```
+
+This script (if available) will check:
+- Service status
+- Port availability
+- Database connectivity
+- File permissions
+- Recent logs
 
 ## Security Considerations
 
@@ -298,7 +366,8 @@ For production environments, consider:
 
 3. **Setup Firewall**
    ```bash
-   sudo ufw allow 5000/tcp
+   # Replace 5002 with your actual port from .env
+   sudo ufw allow 5002/tcp
    sudo ufw enable
    ```
 
@@ -309,7 +378,8 @@ For production environments, consider:
        server_name yourdomain.com;
 
        location / {
-           proxy_pass http://localhost:5000;
+           # Update port to match your .env PORT value
+           proxy_pass http://localhost:5002;
            proxy_http_version 1.1;
            proxy_set_header Upgrade $http_upgrade;
            proxy_set_header Connection 'upgrade';
@@ -367,8 +437,10 @@ sudo -u postgres psql calendar < calendar_backup_20250204.sql
 ### Backup Uploaded Files
 
 ```bash
-# Backup posters directory
-tar -czf posters_backup_$(date +%Y%m%d).tar.gz public/posters/
+# Backup posters directory (persistent storage location)
+sudo tar -czf posters_backup_$(date +%Y%m%d).tar.gz /var/calendar-events/posters/
+
+# Or if using custom POSTERS_STORAGE_PATH, check your .env file
 ```
 
 ### Automated Backups
@@ -421,11 +493,52 @@ sudo systemctl daemon-reload
 sudo systemctl restart calendar-events
 ```
 
+## File Storage Architecture
+
+### Persistent Storage Location
+
+Uploaded event posters are stored in `/var/calendar-events/posters` (not in the project's `public/` directory). This design ensures:
+
+- **Deployment Safety**: Files persist across deployments and rebuilds
+- **Clean Separation**: User data separated from application code
+- **Easy Backups**: Single directory to backup for all uploaded content
+
+### Custom Storage Path
+
+Override the default storage location using environment variable:
+
+```bash
+# In .env or systemd service file
+POSTERS_STORAGE_PATH=/custom/path/to/posters
+```
+
+**Note**: If you change this path:
+1. Create the directory: `sudo mkdir -p /custom/path/to/posters`
+2. Set permissions: `sudo chown -R $USER:$USER /custom/path/to/posters`
+3. Update systemd service if needed
+4. Restart the service
+
+### Migrating from Old Storage Location
+
+If upgrading from a version that used `public/posters`:
+
+```bash
+# Copy existing files to new location
+sudo mkdir -p /var/calendar-events/posters
+sudo cp -r public/posters/* /var/calendar-events/posters/
+sudo chown -R $USER:$USER /var/calendar-events/posters
+sudo chmod -R 755 /var/calendar-events/posters
+
+# Re-run deployment
+sudo ./deploy.sh
+```
+
 ## Support
 
 For issues or questions:
 - Check logs: `sudo journalctl -u calendar-events -f`
 - Review this documentation
+- Run diagnostics: `sudo ./troubleshoot.sh` (if available)
 - Check Next.js documentation: https://nextjs.org/docs
 - Check Drizzle ORM documentation: https://orm.drizzle.team/
 

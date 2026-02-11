@@ -191,7 +191,7 @@ function EventFormContent({
           {/* 左侧列 */}
           <div className="space-y-4">
                         <div className="space-y-2">
-              <Label htmlFor="image">活动图片（海报）</Label>
+              <Label htmlFor="image">活动图片/海报(智能辅助自动填表)</Label>
               <div className="flex items-center gap-2">
                 <Input
                   id="image"

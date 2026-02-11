@@ -4,13 +4,23 @@
 # Deployment Script for Calendar Event Management System
 #
 # This script:
+# - Installs lsof for port checking
+# - Auto-detects available port (starting from 5002)
 # - Installs Node.js, PostgreSQL, and pnpm if needed
 # - Sets up PostgreSQL database and user
-# - Runs database migrations
+# - Configures environment variables (.env)
 # - Installs project dependencies
-# - Builds the Next.js application
+# - Runs database migrations
+# - Cleans build cache and builds the Next.js application
+# - Creates persistent storage directory (/var/calendar-events/posters)
 # - Sets up systemd service for robust process management
 # - Starts/restarts the application
+#
+# Features:
+# - Idempotent: Safe to run multiple times
+# - Automatic port selection if default port is occupied
+# - Persistent file storage outside project directory
+# - Clean builds to prevent stale schema issues
 #
 # Usage: sudo ./deploy.sh
 ###############################################################################
