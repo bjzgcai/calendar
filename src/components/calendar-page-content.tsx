@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { Calendar as CalendarIcon, List } from "lucide-react"
 import { EventCalendar } from "@/components/event-calendar"
 import { EventListView } from "@/components/event-list-view"
+import { EventYearListView } from "@/components/event-year-list-view"
 import { EventDetail } from "@/components/event-detail"
 import { EventForm } from "@/components/event-form"
 import { EventFilter } from "@/components/event-filter"
@@ -224,15 +225,22 @@ export function CalendarPageContent() {
                 tagsFilter={tagsFilter}
                 myEventsFilter={myEventsFilter}
               />
+            ) : viewMode === "year" ? (
+              <EventYearListView
+                key={refreshKey}
+                onEventClick={handleEventClick}
+                eventTypeFilter={eventTypeFilter}
+                organizerFilter={organizerFilter}
+                tagsFilter={tagsFilter}
+                myEventsFilter={myEventsFilter}
+              />
             ) : (
               <EventCalendar
                 key={`${refreshKey}-${viewMode}`}
                 onEventClick={handleEventClick}
                 onTimeSlotSelect={handleTimeSlotSelect}
                 currentView={
-                  viewMode === "year"
-                    ? "multiMonthYear"
-                    : viewMode === "month"
+                  viewMode === "month"
                     ? "dayGridMonth"
                     : viewMode === "week"
                     ? "timeGridWeek"

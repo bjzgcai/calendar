@@ -6,7 +6,7 @@ import { CalendarEvent } from "@/types/calendar"
 import { format, startOfMonth, endOfMonth, addMonths, subMonths, parseISO, isSameDay } from "date-fns"
 import { zhCN } from "date-fns/locale"
 import { Calendar, Clock, MapPin, Tag, Users, ExternalLink } from "lucide-react"
-import { getEventTypeColor } from "@/storage/database"
+import { getEventTypeColor, EVENT_TYPE_COLORS, EventType } from "@/storage/database"
 
 interface EventListViewProps {
   onEventClick?: (event: CalendarEvent) => void
@@ -322,20 +322,22 @@ export function EventListView({
                                 <div className="flex flex-wrap gap-1">
                                   {event.extendedProps.eventType
                                     .split(",")
-                                    .map((type, idx) => (
-                                      <span
-                                        key={idx}
-                                        className="text-xs px-2 py-0.5 rounded-full"
-                                        style={{
-                                          backgroundColor: getEventTypeColor(
-                                            type.trim() as any
-                                          ).calendarBg,
-                                          color: "white",
-                                        }}
-                                      >
-                                        {type.trim()}
-                                      </span>
-                                    ))}
+                                    .map((type, idx) => {
+                                      const trimmedType = type.trim() as EventType
+                                      const typeConfig = EVENT_TYPE_COLORS[trimmedType]
+                                      return (
+                                        <span
+                                          key={idx}
+                                          className="text-xs px-2 py-0.5 rounded-full"
+                                          style={{
+                                            backgroundColor: typeConfig?.calendarBg || "#6b7280",
+                                            color: "white",
+                                          }}
+                                        >
+                                          {typeConfig?.label || trimmedType}
+                                        </span>
+                                      )
+                                    })}
                                 </div>
                               </div>
                             )}
