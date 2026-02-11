@@ -16,9 +16,9 @@ export const metadata: Metadata = {
     '校园活动',
     '日程管理',
   ],
-  // icons: {
-  //   icon: '',
-  // },
+  icons: {
+    icon: '/icon.png',
+  },
   openGraph: {
     title: '中关村学院活动日历',
     description:

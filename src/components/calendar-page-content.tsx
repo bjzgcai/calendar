@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Calendar as CalendarIcon, List } from "lucide-react"
+import { List } from "lucide-react"
+import Image from "next/image"
 import { EventCalendar } from "@/components/event-calendar"
 import { EventListView } from "@/components/event-list-view"
 import { EventYearListView } from "@/components/event-year-list-view"
@@ -137,7 +138,7 @@ export function CalendarPageContent() {
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                <CalendarIcon className="h-8 w-8 text-blue-600" />
+                <Image src="/icon.png" alt="Calendar Icon" width={32} height={32} className="h-8 w-8" />
                 学院活动日历
               </h1>
               <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
@@ -194,7 +195,7 @@ export function CalendarPageContent() {
                 onClick={() => setFormOpen(true)}
                 className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 py-2"
               >
-                <CalendarIcon className="mr-2 h-4 w-4" />
+                <Image src="/icon.png" alt="Calendar Icon" width={16} height={16} className="mr-2 h-4 w-4" />
                 创建活动
               </button>
               <UserMenu />
