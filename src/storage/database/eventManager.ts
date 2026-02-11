@@ -1,11 +1,11 @@
 import { eq, and, SQL, gte, lte, like, isNull, or, sql } from "drizzle-orm";
-import { getDb } from "coze-coding-dev-sdk";
+import { getDirectDb } from "@/lib/db";
 import { events, insertEventWithCoercionSchema, updateEventWithCoercionSchema } from "./shared/schema";
 import type { Event, InsertEvent, UpdateEvent, EventType } from "./shared/schema";
 
 export class EventManager {
   async createEvent(data: InsertEvent): Promise<Event> {
-    const db = await getDb();
+    const db = getDirectDb();
     const validated = insertEventWithCoercionSchema.parse(data);
     const [event] = await db.insert(events).values(validated).returning();
     return event;
@@ -22,7 +22,7 @@ export class EventManager {
     creatorId?: number | null;
   }): Promise<Event[]> {
     const { skip = 0, limit = 100, startDate, endDate, eventType, organizer, tags, creatorId } = options || {};
-    const db = await getDb();
+    const db = getDirectDb();
 
     const conditions: SQL[] = [];
 
@@ -77,13 +77,13 @@ export class EventManager {
   }
 
   async getEventById(id: number): Promise<Event | null> {
-    const db = await getDb();
+    const db = getDirectDb();
     const [event] = await db.select().from(events).where(eq(events.id, id));
     return event || null;
   }
 
   async updateEvent(id: number, data: UpdateEvent): Promise<Event | null> {
-    const db = await getDb();
+    const db = getDirectDb();
     const validated = updateEventWithCoercionSchema.parse(data);
     const [event] = await db
       .update(events)
@@ -94,13 +94,13 @@ export class EventManager {
   }
 
   async deleteEvent(id: number): Promise<boolean> {
-    const db = await getDb();
+    const db = getDirectDb();
     const result = await db.delete(events).where(eq(events.id, id));
     return (result.rowCount ?? 0) > 0;
   }
 
   async getOrganizers(): Promise<string[]> {
-    const db = await getDb();
+    const db = getDirectDb();
     const result = await db
       .selectDistinct({ organizer: events.organizer })
       .from(events)
@@ -109,7 +109,7 @@ export class EventManager {
   }
 
   async getTags(): Promise<string[]> {
-    const db = await getDb();
+    const db = getDirectDb();
     const allEvents = await db.select({ tags: events.tags }).from(events);
     const tagSet = new Set<string>();
     allEvents.forEach((event) => {
@@ -120,7 +120,7 @@ export class EventManager {
   }
 
   async getTagsWithCounts(): Promise<{ name: string; count: number }[]> {
-    const db = await getDb();
+    const db = getDirectDb();
     const allEvents = await db.select({ tags: events.tags }).from(events);
     const tagMap = new Map<string, number>();
 
