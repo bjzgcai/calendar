@@ -9,22 +9,21 @@ export const metadata: Metadata = {
     template: '%s | 中关村学院',
   },
   description:
-    'AI编程是一款一站式云端 Vibe Coding 开发平台。通过对话轻松构建智能体、工作流和网站，实现从创意到上线的无缝衔接。',
+    '中关村学院活动日历 - 查看和管理学院各类活动、讲座、竞赛等日程安排。',
   keywords: [
     '中关村学院',
     '活动日历',
+    '校园活动',
+    '日程管理',
   ],
-  authors: [{ name: 'Coze Code Team', url: 'https://code.coze.cn' }],
-  generator: 'Coze Code',
   // icons: {
   //   icon: '',
   // },
   openGraph: {
-    title: 'AI编程 | 你的 AI 工程师已就位',
+    title: '中关村学院活动日历',
     description:
-      '我正在使用AI编程 Vibe Coding，让创意瞬间上线。告别拖拽，拥抱心流。',
-    url: 'https://code.coze.cn',
-    siteName: 'AI编程',
+      '查看和管理中关村学院各类活动、讲座、竞赛等日程安排。',
+    siteName: '中关村学院活动日历',
     locale: 'zh_CN',
     type: 'website',
     // images: [
@@ -32,17 +31,10 @@ export const metadata: Metadata = {
     //     url: '',
     //     width: 1200,
     //     height: 630,
-    //     alt: 'AI编程 - 你的 AI 工程师',
+    //     alt: '中关村学院活动日历',
     //   },
     // ],
   },
-  // twitter: {
-  //   card: 'summary_large_image',
-  //   title: 'Coze Code | Your AI Engineer is Here',
-  //   description:
-  //     'Build and deploy full-stack applications through AI conversation. No env setup, just flow.',
-  //   // images: [''],
-  // },
   robots: {
     index: true,
     follow: true,

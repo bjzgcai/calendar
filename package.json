@@ -3,11 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build": "bash ./scripts/build.sh",
-    "dev": "bash ./scripts/dev.sh",
+    "build": "next build",
+    "dev": "next dev --turbopack --port 5000",
     "preinstall": "npx only-allow pnpm",
     "lint": "eslint",
-    "start": "bash ./scripts/start.sh",
+    "start": "next start --port 5000",
     "ts-check": "tsc -p tsconfig.json",
     "check-holidays": "tsx scripts/check-holiday-update.ts"
   },
@@ -49,7 +49,6 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
-    "coze-coding-dev-sdk": "^0.7.3",
     "date-fns": "^4.1.0",
     "drizzle-kit": "^0.31.8",
     "drizzle-orm": "^0.45.1",

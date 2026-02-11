@@ -1,7 +1,6 @@
 #!/bin/bash
 set -Eeuo pipefail
 
-COZE_WORKSPACE_PATH="${COZE_WORKSPACE_PATH:-$(pwd)}"
 PORT=5002
 DEPLOY_RUN_PORT="${DEPLOY_RUN_PORT:-$PORT}"
 
@@ -41,7 +40,6 @@ if ! is_port_available $DEPLOY_RUN_PORT; then
 fi
 
 start_service() {
-    cd "${COZE_WORKSPACE_PATH}"
     echo "Starting HTTP service on port ${DEPLOY_RUN_PORT} for deploy..."
     npx next start --hostname 0.0.0.0 --port ${DEPLOY_RUN_PORT}
 }

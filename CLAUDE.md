@@ -13,8 +13,9 @@ Full-stack Next.js event calendar for managing college activities (中关村学�
 
 ## Key Commands
 ```bash
-coze dev         # Dev server on port 5000
-coze build       # Production build
+pnpm dev         # Dev server on port 5000 (with Turbopack)
+pnpm build       # Production build
+pnpm start       # Start production server on port 5000
 pnpm install     # Install dependencies
 ```
 
@@ -65,30 +66,3 @@ src/
 Required: `DATABASE_URL`, `PGDATABASE_URL` (PostgreSQL connection)
 Optional: DingTalk integration vars
 
-## color tag
-1. 在筛选条件中, 新增活动类型选项, 以便用户根据活动性质进行筛选和管理。以下是新增的活动类型及其对应的颜色标识:
-
-学术研究 🔵 蓝色
-
-学术讲座、研讨会、论文分享会、读书会
-AI前沿技术交流、学术报告
-
-教学培训 🟢 绿色
-课程安排、工作坊、技术培训
-AI技能培训、认证考试
-
-学生活动 🟠 橙色
-学生俱乐部活动、竞赛、社团活动
-黑客马拉松、项目展示
-
-产学研合作 🟣 紫色
-企业合作项目、技术对接会
-产业论坛、创新孵化
-
-行政管理 ⚪ 灰色
-内部会议、评审会、审核流程
-行政事务、部门协调
-
-重要截止 🔴 红色
-申请截止、项目交付节点
-考试日期、重要里程碑
