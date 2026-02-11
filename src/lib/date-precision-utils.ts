@@ -1,0 +1,69 @@
+import { DatePrecision } from "@/storage/database/shared/schema"
+
+/**
+ * 根据日期精确度格式化显示文本
+ */
+export function formatDateByPrecision(
+  date: Date | string,
+  precision: DatePrecision,
+  approximateMonth?: string | null
+): string {
+  if (precision === "month" && approximateMonth) {
+    const [year, month] = approximateMonth.split("-")
+    return `${year}年${parseInt(month)}月（日期待定）`
+  }
+
+  // 默认格式化精确日期
+  const dateObj = typeof date === "string" ? new Date(date) : date
+  return dateObj.toLocaleString("zh-CN", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  })
+}
+
+/**
+ * 为"日期待定"的事件生成显示日期
+ * 在月视图中显示在月初（1号）
+ */
+export function getDisplayDateForUncertainEvent(approximateMonth: string): {
+  start: Date
+  end: Date
+} {
+  const [year, month] = approximateMonth.split("-").map(Number)
+  const start = new Date(year, month - 1, 1, 0, 0, 0) // 月初 00:00
+  const end = new Date(year, month - 1, 1, 23, 59, 59) // 月初 23:59
+
+  return { start, end }
+}
+
+/**
+ * 检查事件是否应该在当前视图中显示
+ */
+export function shouldShowInView(
+  precision: DatePrecision,
+  viewType: string
+): boolean {
+  // 精确日期的事件在所有视图中显示
+  if (precision === "exact") return true
+
+  // 日期待定的事件显示规则
+  if (precision === "month") {
+    // 在月视图、年视图中显示
+    if (viewType.includes("month") || viewType.includes("Year")) return true
+    // 在周视图、日视图中不显示（避免混淆）
+    return false
+  }
+
+  return true
+}
+
+/**
+ * 为不确定日期的事件添加特殊类名
+ */
+export function getUncertainEventClassName(precision: DatePrecision): string {
+  if (precision === "exact") return ""
+  return `event-uncertain event-uncertain-${precision}`
+}

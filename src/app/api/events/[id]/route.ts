@@ -60,6 +60,8 @@ export async function PUT(
       tags: body.tags,
       recurrenceRule: body.recurrenceRule,
       recurrenceEndDate: body.recurrenceEndDate ? new Date(body.recurrenceEndDate) : null,
+      datePrecision: body.datePrecision || undefined,
+      approximateMonth: body.approximateMonth || null,
     });
 
     if (!updatedEvent) {

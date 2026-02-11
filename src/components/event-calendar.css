@@ -120,6 +120,63 @@
   flex-direction: column;
 }
 
+/* Add pointer cursor to all events */
+.fc-event {
+  cursor: pointer;
+}
+
+/* ==========================================
+   Week & Day View Event Styling - Left Border Only
+   ========================================== */
+
+/* Remove background color in time grid views (week & day) */
+.fc-timegrid-event {
+  background-color: transparent !important;
+  border: none !important;
+  border-left: 4px solid var(--fc-event-border-color) !important;
+}
+
+/* Event title and content styling for better readability */
+.fc-timegrid-event .fc-event-main {
+  padding: 4px 8px;
+  color: #1f2937;
+}
+
+.fc-timegrid-event .fc-event-title {
+  font-weight: 500;
+  color: #1f2937;
+}
+
+.fc-timegrid-event .fc-event-time {
+  font-size: 11px;
+  color: #6b7280;
+}
+
+/* Hover effect - add subtle background and pointer cursor */
+.fc-timegrid-event:hover {
+  background-color: rgba(0, 0, 0, 0.03) !important;
+  cursor: pointer;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .fc-timegrid-event .fc-event-main {
+    color: #f3f4f6;
+  }
+
+  .fc-timegrid-event .fc-event-title {
+    color: #f3f4f6;
+  }
+
+  .fc-timegrid-event .fc-event-time {
+    color: #9ca3af;
+  }
+
+  .fc-timegrid-event:hover {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+  }
+}
+
 /* 中国节假日和调休样式 */
 
 /* 日期数字和徽章的包装器 */
@@ -211,5 +268,257 @@
 
   .day-number-wrapper {
     gap: 2px;
+  }
+}
+
+/* ==========================================
+   不确定日期事件样式
+   ========================================== */
+
+/* 日期待定事件的基础样式 */
+.fc-event.event-uncertain {
+  border-style: dashed !important;
+  border-width: 2px !important;
+  opacity: 0.85;
+  position: relative;
+}
+
+/* 添加斜纹背景模式 */
+.fc-event.event-uncertain::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 8px,
+    rgba(255, 255, 255, 0.15) 8px,
+    rgba(255, 255, 255, 0.15) 16px
+  );
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+/* 日期待定事件 */
+.fc-event.event-uncertain-month {
+  background: linear-gradient(
+    135deg,
+    rgba(59, 130, 246, 0.7) 0%,
+    rgba(147, 197, 253, 0.7) 100%
+  ) !important;
+  border-color: #3b82f6 !important;
+}
+
+/* 季度待定事件 */
+.fc-event.event-uncertain-quarter {
+  background: linear-gradient(
+    135deg,
+    rgba(168, 85, 247, 0.7) 0%,
+    rgba(192, 132, 252, 0.7) 100%
+  ) !important;
+  border-color: #a855f7 !important;
+}
+
+/* 年度待定事件 */
+.fc-event.event-uncertain-year {
+  background: linear-gradient(
+    135deg,
+    rgba(107, 114, 128, 0.7) 0%,
+    rgba(156, 163, 175, 0.7) 100%
+  ) !important;
+  border-color: #6b7280 !important;
+}
+
+/* 鼠标悬停效果 */
+.fc-event.event-uncertain:hover {
+  opacity: 1;
+  transform: scale(1.02);
+  transition: all 0.2s ease;
+  z-index: 100;
+  cursor: pointer;
+}
+
+/* 日期待定标识（显示在事件右上角） */
+.fc-event.event-uncertain .fc-event-main::after {
+  content: "📅?";
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  font-size: 10px;
+  opacity: 0.8;
+  pointer-events: none;
+}
+
+/* Tooltip 中的日期待定徽章 */
+.event-uncertain-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  margin-bottom: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #fff;
+  background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(245, 158, 11, 0.3);
+}
+
+/* 年视图中的不确定日期事件 */
+.fc-multimonth-view .fc-event.event-uncertain {
+  min-height: 20px;
+  padding: 2px 4px;
+}
+
+.fc-multimonth-view .fc-event.event-uncertain .fc-event-title {
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 月视图中的不确定日期事件 - 在月初显示 */
+.fc-daygrid-view .fc-event.event-uncertain {
+  /* 使用阴影强调这是特殊事件 */
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.4);
+}
+
+/* 列表视图中添加图标 */
+.fc-list-view .fc-event.event-uncertain .fc-list-event-title::before {
+  content: "📅 ";
+  margin-right: 4px;
+}
+
+/* 移动端优化 */
+@media (max-width: 768px) {
+  .fc-event.event-uncertain {
+    border-width: 1.5px !important;
+  }
+
+  .fc-event.event-uncertain .fc-event-main::after {
+    font-size: 9px;
+    top: 1px;
+    right: 2px;
+  }
+
+  .event-uncertain-badge {
+    font-size: 10px;
+    padding: 3px 6px;
+  }
+}
+
+/* Dark mode 支持 */
+@media (prefers-color-scheme: dark) {
+  .fc-event.event-uncertain::before {
+    background: repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 8px,
+      rgba(0, 0, 0, 0.2) 8px,
+      rgba(0, 0, 0, 0.2) 16px
+    );
+  }
+
+  .fc-event.event-uncertain-month {
+    background: linear-gradient(
+      135deg,
+      rgba(59, 130, 246, 0.5) 0%,
+      rgba(96, 165, 250, 0.5) 100%
+    ) !important;
+  }
+
+  .fc-event.event-uncertain-quarter {
+    background: linear-gradient(
+      135deg,
+      rgba(168, 85, 247, 0.5) 0%,
+      rgba(192, 132, 252, 0.5) 100%
+    ) !important;
+  }
+
+  .fc-event.event-uncertain-year {
+    background: linear-gradient(
+      135deg,
+      rgba(107, 114, 128, 0.5) 0%,
+      rgba(156, 163, 175, 0.5) 100%
+    ) !important;
+  }
+}
+
+/* ==========================================
+   "+X more" 悬停链接样式
+   ========================================== */
+
+/* 美化 "+X more" 链接 */
+.fc-daygrid-more-link {
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  padding: 2px 4px;
+  border-radius: 3px;
+  display: inline-block;
+}
+
+.fc-daygrid-more-link:hover {
+  background-color: rgba(59, 130, 246, 0.1);
+  color: #2563eb;
+  transform: scale(1.05);
+}
+
+/* Popover 样式优化 */
+.fc-popover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  border-radius: 8px !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  transition: opacity 0.2s ease;
+}
+
+.fc-popover-header {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
+  color: white !important;
+  font-weight: 600;
+  padding: 8px 12px !important;
+  border-top-left-radius: 7px !important;
+  border-top-right-radius: 7px !important;
+}
+
+.fc-popover-close {
+  color: white !important;
+  opacity: 0.8;
+  transition: opacity 0.2s ease;
+}
+
+.fc-popover-close:hover {
+  opacity: 1;
+}
+
+.fc-popover-body {
+  padding: 4px !important;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+/* Popover 中的事件样式 */
+.fc-popover .fc-event {
+  margin: 2px 4px;
+  border-radius: 4px;
+  transition: transform 0.15s ease;
+}
+
+.fc-popover .fc-event:hover {
+  transform: scale(1.02);
+  z-index: 10;
+}
+
+/* 移动端优化 */
+@media (max-width: 768px) {
+  .fc-popover {
+    max-width: 90vw;
+  }
+
+  .fc-popover-body {
+    max-height: 250px;
   }
 }

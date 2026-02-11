@@ -29,7 +29,7 @@ export function EventListView({
 }: EventListViewProps) {
   const [events, setEvents] = useState<CalendarEvent[]>([])
   const [loading, setLoading] = useState(false)
-  const [startMonth, setStartMonth] = useState(() => subMonths(new Date(), 3))
+  const [startMonth, setStartMonth] = useState(() => new Date()) // 从当前月份开始
   const [endMonth, setEndMonth] = useState(() => addMonths(new Date(), 3))
   const [hasMorePast, setHasMorePast] = useState(true)
   const [hasMoreFuture, setHasMoreFuture] = useState(true)
@@ -37,6 +37,8 @@ export function EventListView({
   const topSentinelRef = useRef<HTMLDivElement>(null)
   const bottomSentinelRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const todayRef = useRef<HTMLDivElement>(null) // 用于滚动到今天的位置
+  const hasScrolledToToday = useRef(false) // 跟踪是否已经滚动到今天
 
   // 获取事件数据
   const fetchEvents = useCallback(
@@ -84,10 +86,11 @@ export function EventListView({
 
   // 当筛选器改变时，重置月份范围
   useEffect(() => {
-    setStartMonth(subMonths(new Date(), 3))
+    setStartMonth(new Date()) // 从当前月份开始
     setEndMonth(addMonths(new Date(), 3))
     setHasMorePast(true)
     setHasMoreFuture(true)
+    hasScrolledToToday.current = false // 重置滚动标记
   }, [eventTypeFilter, organizerFilter, tagsFilter, myEventsFilter])
 
   // 初始加载
@@ -98,6 +101,17 @@ export function EventListView({
     }
     loadInitialEvents()
   }, [fetchEvents, startMonth, endMonth])
+
+  // 自动滚动到今天的日期（仅初次加载时）
+  useEffect(() => {
+    if (events.length > 0 && todayRef.current && !hasScrolledToToday.current) {
+      // 延迟一点确保 DOM 已经渲染
+      setTimeout(() => {
+        todayRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+        hasScrolledToToday.current = true
+      }, 100)
+    }
+  }, [events])
 
   // 加载更早的事件（向上滚动）
   const loadPastEvents = useCallback(async () => {
@@ -194,10 +208,10 @@ export function EventListView({
   }
 
   return (
-    <Card className="p-4">
+    <Card className="p-4 flex flex-col h-[calc(100vh-12rem)] md:h-auto">
       <div
         ref={containerRef}
-        className="space-y-6 max-h-[calc(100vh-200px)] overflow-y-auto"
+        className="space-y-6 flex-1 overflow-y-auto"
       >
         {/* 顶部哨兵 */}
         <div ref={topSentinelRef} className="h-4 flex items-center justify-center">
@@ -218,12 +232,23 @@ export function EventListView({
               (a, b) => new Date(a.start).getTime() - new Date(b.start).getTime()
             )
 
+            const isToday = isSameDay(dateObj, new Date())
+
             return (
-              <div key={date} className="space-y-3">
+              <div
+                key={date}
+                className="space-y-3"
+                ref={isToday ? todayRef : null}
+              >
                 {/* 日期标题 */}
                 <div className="sticky top-0 bg-background/95 backdrop-blur-sm z-10 pb-2">
                   <h3 className="text-lg font-semibold text-foreground">
                     {format(dateObj, "yyyy年MM月dd日 EEEE", { locale: zhCN })}
+                    {isToday && (
+                      <span className="ml-2 text-sm font-normal text-blue-600 dark:text-blue-400">
+                        (今天)
+                      </span>
+                    )}
                   </h3>
                   <div className="h-px bg-border mt-2" />
                 </div>
@@ -239,7 +264,7 @@ export function EventListView({
                       <Card
                         key={event.id}
                         className="p-4 cursor-pointer hover:shadow-md transition-shadow border-l-4"
-                        style={{ borderLeftColor: color.badge }}
+                        style={{ borderLeftColor: color.calendarBg }}
                         onClick={() => onEventClick?.(event)}
                       >
                         <div className="space-y-3">
@@ -304,7 +329,7 @@ export function EventListView({
                                         style={{
                                           backgroundColor: getEventTypeColor(
                                             type.trim() as any
-                                          ).badge,
+                                          ).calendarBg,
                                           color: "white",
                                         }}
                                       >

@@ -6,6 +6,7 @@ import dayGridPlugin from "@fullcalendar/daygrid"
 import timeGridPlugin from "@fullcalendar/timegrid"
 import listPlugin from "@fullcalendar/list"
 import interactionPlugin from "@fullcalendar/interaction"
+import multiMonthPlugin from "@fullcalendar/multimonth"
 import tippy from "tippy.js"
 import "tippy.js/dist/tippy.css"
 import "./event-calendar.css"
@@ -14,6 +15,12 @@ import { Button } from "@/components/ui/button"
 import { useMediaQuery } from "@/hooks/use-media-query"
 import { CalendarEvent } from "@/types/calendar"
 import { getHolidayInfo } from "@/lib/chinese-holidays"
+import {
+  formatDateByPrecision,
+  getDisplayDateForUncertainEvent,
+  getUncertainEventClassName,
+} from "@/lib/date-precision-utils"
+import { DatePrecision } from "@/storage/database/shared/schema"
 
 interface EventCalendarProps {
   onEventClick?: (event: CalendarEvent) => void
@@ -66,7 +73,39 @@ export function EventCalendar({ onEventClick, onTimeSlotSelect, onViewChange, cu
       if (!response.ok) throw new Error("获取活动失败")
 
       const data = await response.json()
-      setEvents(data)
+
+      // 处理不确定日期的事件
+      const processedEvents = data.map((event: any) => {
+        const datePrecision = event.datePrecision || "exact"
+
+        // 如果是日期待定的事件，将其显示在月初
+        if (datePrecision === "month" && event.approximateMonth) {
+          const { start, end } = getDisplayDateForUncertainEvent(event.approximateMonth)
+          return {
+            ...event,
+            start: start.toISOString(),
+            end: end.toISOString(),
+            className: getUncertainEventClassName(datePrecision),
+            extendedProps: {
+              ...event.extendedProps,
+              datePrecision,
+              approximateMonth: event.approximateMonth,
+            },
+          }
+        }
+
+        return {
+          ...event,
+          className: getUncertainEventClassName(datePrecision),
+          extendedProps: {
+            ...event.extendedProps,
+            datePrecision,
+            approximateMonth: event.approximateMonth,
+          },
+        }
+      })
+
+      setEvents(processedEvents)
     } catch (error) {
       console.error("获取活动失败:", error)
     } finally {
@@ -95,6 +134,8 @@ export function EventCalendar({ onEventClick, onTimeSlotSelect, onViewChange, cu
         eventType: event.extendedProps.eventType,
         tags: event.extendedProps.tags,
         recurrenceRule: event.extendedProps.recurrenceRule,
+        datePrecision: event.extendedProps.datePrecision,
+        approximateMonth: event.extendedProps.approximateMonth,
       },
     }
     onEventClick?.(calendarEvent)
@@ -151,20 +192,36 @@ export function EventCalendar({ onEventClick, onTimeSlotSelect, onViewChange, cu
       return
     }
 
-    const formatTime = (date: Date) => {
-      return date.toLocaleTimeString("zh-CN", {
-        hour: "2-digit",
-        minute: "2-digit",
-      })
+    const datePrecision = (event.extendedProps?.datePrecision || "exact") as DatePrecision
+    const approximateMonth = event.extendedProps?.approximateMonth
+
+    // 格式化时间显示
+    let timeStr = ""
+    if (datePrecision === "exact") {
+      const formatTime = (date: Date) => {
+        return date.toLocaleTimeString("zh-CN", {
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      }
+      timeStr = `${formatTime(startTime)} - ${formatTime(endTime)}`
+    } else {
+      timeStr = formatDateByPrecision(startTime, datePrecision, approximateMonth)
     }
 
-    const timeStr = `${formatTime(startTime)} - ${formatTime(endTime)}`
     const imageUrl = event.extendedProps?.imageUrl
     const content = event.extendedProps?.content || ""
+
+    // 为不确定日期的事件添加特殊标识
+    const uncertainBadge =
+      datePrecision !== "exact"
+        ? `<div class="event-uncertain-badge">📅 日期待定</div>`
+        : ""
 
     // 创建富文本提示内容
     const tooltipContent = `
       <div style="max-width: 280px;">
+        ${uncertainBadge}
         <div class="event-tooltip-title">
           ${event.title}
         </div>
@@ -238,6 +295,106 @@ export function EventCalendar({ onEventClick, onTimeSlotSelect, onViewChange, cu
     }
   }
 
+  const handleMoreLinkDidMount = (info: any) => {
+    const moreLinkEl = info.el
+    let hideTimeout: NodeJS.Timeout | null = null
+
+    const isPopoverVisible = () => {
+      const popover = document.querySelector('.fc-popover')
+      return popover !== null
+    }
+
+    const closePopover = () => {
+      const popover = document.querySelector('.fc-popover')
+      if (popover) {
+        const closeButton = popover.querySelector('.fc-popover-close') as HTMLElement
+        if (closeButton) {
+          closeButton.click()
+        }
+      }
+    }
+
+    const scheduleHidePopover = () => {
+      hideTimeout = setTimeout(() => {
+        closePopover()
+      }, 500)
+    }
+
+    const cancelHidePopover = () => {
+      if (hideTimeout) {
+        clearTimeout(hideTimeout)
+        hideTimeout = null
+      }
+    }
+
+    const setupPopoverListeners = (popover: Element) => {
+      if (popover.hasAttribute('data-hover-enabled')) return
+
+      popover.setAttribute('data-hover-enabled', 'true')
+
+      // 鼠标进入 popover 时取消关闭
+      popover.addEventListener('mouseenter', cancelHidePopover)
+
+      // 鼠标离开 popover 时关闭
+      popover.addEventListener('mouseleave', scheduleHidePopover)
+    }
+
+    const showPopover = () => {
+      cancelHidePopover()
+
+      // 检查 popover 是否已经存在
+      if (!isPopoverVisible()) {
+        // 触发 FullCalendar 的内置 popover
+        moreLinkEl.click()
+
+        // 立即查找并设置 popover 监听器
+        setTimeout(() => {
+          const popover = document.querySelector('.fc-popover')
+          if (popover) {
+            setupPopoverListeners(popover)
+          }
+        }, 10)
+      }
+    }
+
+    // 鼠标进入 "+X more" 链接时显示 popover
+    moreLinkEl.addEventListener('mouseenter', showPopover)
+
+    // 鼠标离开时延迟关闭
+    moreLinkEl.addEventListener('mouseleave', () => {
+      // 给一些时间让鼠标移动到 popover
+      setTimeout(() => {
+        // 检查鼠标是否在 popover 上
+        const popover = document.querySelector('.fc-popover')
+        if (popover && popover.matches(':hover')) {
+          // 鼠标在 popover 上，不关闭
+          return
+        }
+        // 鼠标不在 popover 上，延迟关闭
+        scheduleHidePopover()
+      }, 100)
+    })
+
+    // 监听 popover 的挂载作为备用方案
+    const observer = new MutationObserver(() => {
+      const popover = document.querySelector('.fc-popover')
+      if (popover && !popover.hasAttribute('data-hover-enabled')) {
+        setupPopoverListeners(popover)
+      }
+    })
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+    })
+
+    // 清理函数
+    return () => {
+      observer.disconnect()
+      cancelHidePopover()
+    }
+  }
+
   if (loading) {
     return (
       <Card className="p-8">
@@ -251,7 +408,7 @@ export function EventCalendar({ onEventClick, onTimeSlotSelect, onViewChange, cu
   return (
     <Card className="p-4">
       <FullCalendar
-        plugins={[dayGridPlugin, timeGridPlugin, listPlugin, interactionPlugin]}
+        plugins={[dayGridPlugin, timeGridPlugin, listPlugin, interactionPlugin, multiMonthPlugin]}
         initialView={initialView}
         timeZone="local"
         headerToolbar={{
@@ -263,6 +420,7 @@ export function EventCalendar({ onEventClick, onTimeSlotSelect, onViewChange, cu
         eventClick={handleEventClick}
         eventDidMount={handleEventDidMount}
         dayCellDidMount={handleDayCellDidMount}
+        moreLinkDidMount={handleMoreLinkDidMount}
         select={handleSelect}
         selectAllow={handleSelectAllow}
         dateClick={handleDateClick}
@@ -277,6 +435,7 @@ export function EventCalendar({ onEventClick, onTimeSlotSelect, onViewChange, cu
           week: "周",
           day: "日",
           list: "列表",
+          multiMonthYear: "年",
         }}
         allDaySlot={false}
         slotMinTime="08:00:00"
@@ -288,6 +447,7 @@ export function EventCalendar({ onEventClick, onTimeSlotSelect, onViewChange, cu
           month: "long",
           year: "numeric",
         }}
+        dayMaxEvents={true}
       />
     </Card>
   )

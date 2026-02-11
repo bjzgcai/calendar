@@ -2,6 +2,12 @@ import { pgTable, serial, varchar, text, timestamp, pgEnum, integer } from "driz
 import { createSchemaFactory } from "drizzle-zod"
 import { z } from "zod"
 
+// 日期精确度枚举
+export const datePrecisionEnum = pgEnum("date_precision", [
+  "exact",      // 精确日期时间
+  "month",      // 仅知道月份
+])
+
 // 重复规则枚举
 export const recurrenceRuleEnum = pgEnum("recurrence_rule", [
   "none",
@@ -55,6 +61,8 @@ export const events = pgTable("events", {
   tags: text("tags").notNull().default(""),
   recurrenceRule: recurrenceRuleEnum("recurrence_rule").notNull().default("none"),
   recurrenceEndDate: timestamp("recurrence_end_date", { withTimezone: true }),
+  datePrecision: datePrecisionEnum("date_precision").notNull().default("exact"), // 日期精确度
+  approximateMonth: varchar("approximate_month", { length: 7 }), // YYYY-MM 格式，用于存储月份待定的事件
   creatorId: integer("creator_id").references(() => users.id), // 创建者用户 ID（外键关联 users 表）
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
@@ -131,6 +139,7 @@ export type UpdateEvent = z.infer<typeof updateEventSchema>
 export type RecurrenceRule = typeof recurrenceRuleEnum.enumValues[number]
 export type OrganizationType = typeof organizationTypeEnum.enumValues[number]
 export type EventType = "academic_research" | "teaching_training" | "student_activities" | "industry_academia" | "administration" | "important_deadlines"
+export type DatePrecision = typeof datePrecisionEnum.enumValues[number]
 
 // Helper functions for array field handling
 export function organziersToString(organizers: string[]): string {

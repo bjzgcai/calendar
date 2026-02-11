@@ -68,11 +68,13 @@ export function SearchableSelect({
 
   const handleClear = (e: React.MouseEvent) => {
     e.stopPropagation()
+    e.preventDefault()
     onChange(undefined)
   }
 
   const removeItem = (e: React.MouseEvent, item: string) => {
     e.stopPropagation()
+    e.preventDefault()
     const newSelection = selectedArray.filter(v => v !== item)
     onChange(newSelection.length > 0 ? newSelection : undefined)
   }
@@ -131,7 +133,7 @@ export function SearchableSelect({
                 >
                   {item}
                   <X
-                    className="h-3 w-3 hover:bg-primary/20 rounded"
+                    className="h-3 w-3 cursor-pointer hover:text-blue-600 rounded transition-colors"
                     onClick={(e) => removeItem(e, item)}
                   />
                 </span>
@@ -143,7 +145,7 @@ export function SearchableSelect({
           <div className="flex items-center gap-2 ml-2">
             {(selectedValue || selectedArray.length > 0) && (
               <X
-                className="h-4 w-4 hover:bg-accent rounded flex-shrink-0"
+                className="h-4 w-4 cursor-pointer hover:text-blue-600 rounded flex-shrink-0 transition-colors"
                 onClick={handleClear}
               />
             )}

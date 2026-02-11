@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Calendar, Clock, MapPin, User, Tag, ExternalLink, X, Trash2, AlertTriangle, Edit } from "lucide-react"
+import { Calendar, Clock, MapPin, User, Tag, ExternalLink, X, Trash2, AlertTriangle, Edit, Layers } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
@@ -86,27 +86,9 @@ export function EventDetail({ event, open, onOpenChange, onEventDeleted, onEvent
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto [&>button]:h-8 [&>button]:w-8 [&>button>svg]:size-5">
         <DialogHeader>
-          <div className="flex items-start justify-between">
-            <DialogTitle className="text-2xl pr-8">{event.title}</DialogTitle>
-            <div className="flex flex-wrap gap-1 justify-end">
-              {eventTypes.length > 0 ? (
-                eventTypes.map((type, index) => {
-                  const colors = getEventTypeColor(type as any)
-                  return (
-                    <Badge key={index} className={colors.bg + " " + colors.text}>
-                      {colors.label}
-                    </Badge>
-                  )
-                })
-              ) : (
-                <Badge className={eventTypeColors.bg + " " + eventTypeColors.text}>
-                  {eventTypeLabel}
-                </Badge>
-              )}
-            </div>
-          </div>
+          <DialogTitle className="text-2xl pr-8">{event.title}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -143,6 +125,29 @@ export function EventDetail({ event, open, onOpenChange, onEventDeleted, onEvent
           <Separator />
 
           <div className="space-y-3">
+            <div className="flex items-start gap-3">
+              <Layers className="h-5 w-5 text-muted-foreground mt-0.5" />
+              <div className="flex-1">
+                <p className="font-medium">活动类型</p>
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {eventTypes.length > 0 ? (
+                    eventTypes.map((type, index) => {
+                      const colors = getEventTypeColor(type as any)
+                      return (
+                        <Badge key={index} className={colors.bg + " " + colors.text}>
+                          {colors.label}
+                        </Badge>
+                      )
+                    })
+                  ) : (
+                    <Badge className={eventTypeColors.bg + " " + eventTypeColors.text}>
+                      {eventTypeLabel}
+                    </Badge>
+                  )}
+                </div>
+              </div>
+            </div>
+
             <div className="flex items-start gap-3">
               <User className="h-5 w-5 text-muted-foreground mt-0.5" />
               <div className="flex-1">

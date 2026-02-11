@@ -19,24 +19,60 @@ const eventSchema = z.object({
   id: z.number().optional(),
   title: z.string().min(1, "标题不能为空"),
   content: z.string().min(1, "内容不能为空"),
-  date: z.string().min(1, "日期不能为空"),
-  startHour: z.string().min(1, "开始时间不能为空"),
-  endHour: z.string().min(1, "结束时间不能为空"),
+  datePrecision: z.enum(["exact", "month"]),
+  date: z.string().optional(),
+  startHour: z.string().optional(),
+  endHour: z.string().optional(),
+  approximateMonth: z.string().optional(), // YYYY-MM 格式
   location: z.string().optional(),
   organizer: z.array(z.string()).min(1, "至少选择一个发起者"),
-  eventType: z.array(z.enum([
+  eventType: z.enum([
     "academic_research",
     "teaching_training",
     "student_activities",
     "industry_academia",
     "administration",
     "important_deadlines",
-  ])).optional(),
+  ]).optional(),
   tags: z.string().optional(),
   link: z.string().url().optional().or(z.literal("")),
   imageUrl: z.string().optional(),
   recurrenceRule: z.enum(["none", "daily", "weekly", "monthly"]),
   recurrenceEndDate: z.string().optional(),
+}).superRefine((data, ctx) => {
+  // 精确日期时，date、startHour、endHour 必填
+  if (data.datePrecision === "exact") {
+    if (!data.date) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "日期不能为空",
+        path: ["date"],
+      })
+    }
+    if (!data.startHour) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "开始时间不能为空",
+        path: ["startHour"],
+      })
+    }
+    if (!data.endHour) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "结束时间不能为空",
+        path: ["endHour"],
+      })
+    }
+  }
+
+  // 非精确日期时，approximateMonth 必填
+  if (data.datePrecision !== "exact" && !data.approximateMonth) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "请选择大致月份",
+      path: ["approximateMonth"],
+    })
+  }
 })
 
 type EventFormData = z.infer<typeof eventSchema>
@@ -122,14 +158,15 @@ function EventFormContent({
   errors,
   isSubmitting,
   uploading,
+  analyzing,
   imageUrl,
   setImageUrl,
   setImageKey,
   handleImageUpload,
   selectedOrganizer,
   setSelectedOrganizer,
-  selectedEventTypes,
-  setSelectedEventTypes,
+  selectedEventType,
+  setSelectedEventType,
   currentTag,
   setCurrentTag,
   tagList,
@@ -153,6 +190,48 @@ function EventFormContent({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* 左侧列 */}
           <div className="space-y-4">
+                        <div className="space-y-2">
+              <Label htmlFor="image">活动图片（海报）</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="image"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  disabled={uploading || analyzing}
+                />
+                {uploading && <span className="text-sm text-muted-foreground">上传中...</span>}
+                {analyzing && <span className="text-sm text-muted-foreground">AI分析中...</span>}
+              </div>
+              {(uploading || analyzing) && (
+                <p className="text-xs text-muted-foreground">
+                  {uploading && "正在上传图片..."}
+                  {analyzing && "正在使用 AI 识别活动信息..."}
+                </p>
+              )}
+              {imageUrl && (
+                <div className="relative mt-2">
+                  <img
+                    src={imageUrl}
+                    alt="活动图片"
+                    className="w-full h-40 object-cover rounded-md"
+                  />
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="icon"
+                    className="absolute top-2 right-2 h-8 w-8"
+                    onClick={() => {
+                      setImageUrl("")
+                      setImageKey("")
+                    }}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
+            </div>
+            
             <div className="space-y-2">
               <Label htmlFor="title">
                 活动标题 <span className="text-destructive">*</span>
@@ -195,22 +274,24 @@ function EventFormContent({
                   const config = EVENT_TYPE_CONFIG[key as keyof typeof EVENT_TYPE_CONFIG]
                   return config.label
                 })}
-                value={selectedEventTypes?.map((type: string) => {
-                  const config = EVENT_TYPE_CONFIG[type as keyof typeof EVENT_TYPE_CONFIG]
-                  return config?.label || type
-                })}
+                value={selectedEventType ? (() => {
+                  const config = EVENT_TYPE_CONFIG[selectedEventType as keyof typeof EVENT_TYPE_CONFIG]
+                  return config?.label || selectedEventType
+                })() : undefined}
                 onChange={(value) => {
-                  const arrayValue = Array.isArray(value) ? value : (value ? [value] : [])
-                  // Convert labels back to keys
-                  const keys = arrayValue.map(label => {
-                    const entry = Object.entries(EVENT_TYPE_CONFIG).find(([_, config]) => config.label === label)
-                    return entry ? entry[0] : label
-                  })
-                  setSelectedEventTypes(keys.length > 0 ? keys : undefined)
-                  setValue("eventType", keys as any)
+                  // Convert label back to key
+                  if (value && typeof value === 'string') {
+                    const entry = Object.entries(EVENT_TYPE_CONFIG).find(([_, config]) => config.label === value)
+                    const key = entry ? entry[0] : value
+                    setSelectedEventType(key)
+                    setValue("eventType", key as any)
+                  } else {
+                    setSelectedEventType(undefined)
+                    setValue("eventType", undefined)
+                  }
                 }}
                 allLabel="请选择活动类型"
-                multiple={true}
+                multiple={false}
                 tooltipContent={
                   <div className="space-y-2">
                     <p className="font-semibold">活动类型说明</p>
@@ -246,114 +327,125 @@ function EventFormContent({
               )}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="image">活动图片（海报）</Label>
-              <div className="flex items-center gap-2">
-                <Input
-                  id="image"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  disabled={uploading}
-                />
-                {uploading && <span className="text-sm text-muted-foreground">上传中...</span>}
-              </div>
-              {imageUrl && (
-                <div className="relative mt-2">
-                  <img
-                    src={imageUrl}
-                    alt="活动图片"
-                    className="w-full h-40 object-cover rounded-md"
-                  />
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    size="icon"
-                    className="absolute top-2 right-2 h-8 w-8"
-                    onClick={() => {
-                      setImageUrl("")
-                      setImageKey("")
-                    }}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              )}
-            </div>
           </div>
 
           {/* 右侧列 */}
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="date">
-                活动日期 <span className="text-destructive">*</span>
-              </Label>
-              <Input id="date" type="date" {...register("date")} />
-              {errors.date && (
-                <p className="text-sm text-destructive">{errors.date.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="startHour">
-                开始时刻 <span className="text-destructive">*</span>
-              </Label>
+              <Label htmlFor="datePrecision">日期精确度</Label>
               <Select
-                value={watch("startHour")}
-                onValueChange={(value) => setValue("startHour", value)}
+                value={watch("datePrecision")}
+                onValueChange={(value) => setValue("datePrecision", value as any)}
               >
-                <SelectTrigger id="startHour">
-                  <SelectValue placeholder="请选择开始时刻" />
+                <SelectTrigger id="datePrecision">
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {TIME_OPTIONS.map((time) => (
-                    <SelectItem key={time} value={time}>
-                      {time}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="exact">精确日期和时间</SelectItem>
+                  <SelectItem value="month">日期待定</SelectItem>
                 </SelectContent>
               </Select>
-              {errors.startHour && (
-                <p className="text-sm text-destructive">{errors.startHour.message}</p>
-              )}
+              <p className="text-xs text-muted-foreground">
+                选择"日期待定"的事件会在月视图和年视图中特殊显示
+              </p>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="endHour">
-                结束时刻 <span className="text-destructive">*</span>
-              </Label>
-              <Select
-                value={watch("endHour")}
-                onValueChange={(value) => {
-                  const startHour = watch("startHour")
-                  // 检查结束时刻是否早于开始时刻
-                  if (startHour && value < startHour) {
-                    // 设置错误信息
-                    setError("endHour", {
-                      type: "manual",
-                      message: "结束时刻不能早于开始时刻",
-                    })
-                  } else {
-                    clearErrors("endHour")
-                    setValue("endHour", value)
-                  }
-                }}
-              >
-                <SelectTrigger id="endHour">
-                  <SelectValue placeholder="请选择结束时刻" />
-                </SelectTrigger>
-                <SelectContent>
-                  {TIME_OPTIONS.map((time) => (
-                    <SelectItem key={time} value={time}>
-                      {time}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.endHour && (
-                <p className="text-sm text-destructive">{errors.endHour.message}</p>
-              )}
-            </div>
+            {watch("datePrecision") === "exact" ? (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="date">
+                    活动日期 <span className="text-destructive">*</span>
+                  </Label>
+                  <Input id="date" type="date" {...register("date")} />
+                  {errors.date && (
+                    <p className="text-sm text-destructive">{errors.date.message}</p>
+                  )}
+                </div>
+              </>
+            ) : (
+              <div className="space-y-2">
+                <Label htmlFor="approximateMonth">
+                  大致月份 <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="approximateMonth"
+                  type="month"
+                  {...register("approximateMonth")}
+                  placeholder="YYYY-MM"
+                />
+                {errors.approximateMonth && (
+                  <p className="text-sm text-destructive">{errors.approximateMonth.message}</p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  {watch("datePrecision") === "month" && '事件将在该月份显示为"日期待定"'}
+                </p>
+              </div>
+            )}
+
+            {watch("datePrecision") === "exact" && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="startHour">
+                    开始时刻 <span className="text-destructive">*</span>
+                  </Label>
+                  <Select
+                    value={watch("startHour")}
+                    onValueChange={(value) => setValue("startHour", value)}
+                  >
+                    <SelectTrigger id="startHour">
+                      <SelectValue placeholder="请选择开始时刻" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TIME_OPTIONS.map((time) => (
+                        <SelectItem key={time} value={time}>
+                          {time}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {errors.startHour && (
+                    <p className="text-sm text-destructive">{errors.startHour.message}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="endHour">
+                    结束时刻 <span className="text-destructive">*</span>
+                  </Label>
+                  <Select
+                    value={watch("endHour")}
+                    onValueChange={(value) => {
+                      const startHour = watch("startHour")
+                      // 检查结束时刻是否早于开始时刻
+                      if (startHour && value < startHour) {
+                        // 设置错误信息
+                        setError("endHour", {
+                          type: "manual",
+                          message: "结束时刻不能早于开始时刻",
+                        })
+                      } else {
+                        clearErrors("endHour")
+                        setValue("endHour", value)
+                      }
+                    }}
+                  >
+                    <SelectTrigger id="endHour">
+                      <SelectValue placeholder="请选择结束时刻" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TIME_OPTIONS.map((time) => (
+                        <SelectItem key={time} value={time}>
+                          {time}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {errors.endHour && (
+                    <p className="text-sm text-destructive">{errors.endHour.message}</p>
+                  )}
+                </div>
+              </>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="recurrenceRule">重复规则</Label>
@@ -477,12 +569,13 @@ export function EventForm({
 }: EventFormProps) {
   const [internalOpen, setInternalOpen] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [analyzing, setAnalyzing] = useState(false)
   const [imageUrl, setImageUrl] = useState<string>("")
   const [imageKey, setImageKey] = useState<string>("")
   const [currentTag, setCurrentTag] = useState<string>("")
   const [tagList, setTagList] = useState<string[]>([])
   const [selectedOrganizer, setSelectedOrganizer] = useState<string[] | undefined>(undefined)
-  const [selectedEventTypes, setSelectedEventTypes] = useState<string[] | undefined>(undefined)
+  const [selectedEventType, setSelectedEventType] = useState<string | undefined>(undefined)
 
   // 如果提供了 controlledOpen，使用它；否则使用内部状态
   const open = controlledOpen !== undefined ? controlledOpen : internalOpen
@@ -502,12 +595,14 @@ export function EventForm({
     defaultValues: {
       title: "",
       content: "",
+      datePrecision: "exact",
       date: "",
       startHour: "",
       endHour: "",
+      approximateMonth: "",
       location: "",
       organizer: [],
-      eventType: [],
+      eventType: undefined,
       tags: "",
       link: "",
       recurrenceRule: "none",
@@ -528,7 +623,7 @@ export function EventForm({
       setTagList([])
       setCurrentTag("")
       setSelectedOrganizer(undefined)
-      setSelectedEventTypes(undefined)
+      setSelectedEventType(undefined)
     }
   }, [open, reset])
 
@@ -542,23 +637,25 @@ export function EventForm({
             : Array.isArray(initialValues.organizer) ? initialValues.organizer : [initialValues.organizer as string])
         : []
 
-      const eventTypeArray = initialValues.eventType
+      const eventTypeValue = initialValues.eventType
         ? (typeof initialValues.eventType === 'string'
-            ? (initialValues.eventType as string).split(',').filter((s: string) => s.trim())
-            : Array.isArray(initialValues.eventType) ? initialValues.eventType : [initialValues.eventType])
-        : []
+            ? (initialValues.eventType as string).split(',').filter((s: string) => s.trim())[0]
+            : Array.isArray(initialValues.eventType) ? initialValues.eventType[0] : initialValues.eventType)
+        : undefined
 
       // 使用 reset 而不是 setValue，确保表单状态正确更新
       reset({
         id: initialValues.id,
         title: initialValues.title || "",
         content: initialValues.content || "",
+        datePrecision: (initialValues as any).datePrecision || "exact",
         date: initialValues.date || "",
         startHour: initialValues.startHour || "",
         endHour: initialValues.endHour || "",
+        approximateMonth: (initialValues as any).approximateMonth || "",
         location: initialValues.location || "",
         organizer: organizerArray,
-        eventType: eventTypeArray as any,
+        eventType: eventTypeValue as any,
         tags: initialValues.tags || "",
         link: initialValues.link || "",
         recurrenceRule: initialValues.recurrenceRule || "none",
@@ -578,7 +675,7 @@ export function EventForm({
 
       // 更新组织者和活动类型
       setSelectedOrganizer(organizerArray.length > 0 ? organizerArray : undefined)
-      setSelectedEventTypes(eventTypeArray.length > 0 ? eventTypeArray : undefined)
+      setSelectedEventType(eventTypeValue)
     }
   }, [initialValues, open, reset])
 
@@ -601,11 +698,99 @@ export function EventForm({
       const data = await response.json()
       setImageUrl(data.imageUrl)
       setImageKey(data.fileKey)
+
+      // Automatically analyze the uploaded image
+      analyzeImage(data.imageUrl)
     } catch (error) {
       console.error("上传图片失败:", error)
       alert("上传图片失败，请重试")
     } finally {
       setUploading(false)
+    }
+  }
+
+  const analyzeImage = async (imageUrl: string) => {
+    setAnalyzing(true)
+    try {
+      const response = await fetch("/api/analyze-image", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ imageUrl }),
+      })
+
+      if (!response.ok) {
+        console.error("图片分析失败")
+        return
+      }
+
+      const result = await response.json()
+      if (!result.success || !result.data) {
+        console.error("图片分析返回无效数据")
+        return
+      }
+
+      const extracted = result.data
+
+      // Auto-fill form fields with extracted data (only if current field is empty)
+      if (extracted.title && !watch("title")) {
+        setValue("title", extracted.title)
+      }
+
+      if (extracted.content && !watch("content")) {
+        setValue("content", extracted.content)
+      }
+
+      if (extracted.location && !watch("location")) {
+        setValue("location", extracted.location)
+      }
+
+      if (extracted.link && !watch("link")) {
+        setValue("link", extracted.link)
+      }
+
+      // Handle date and time
+      if (extracted.date) {
+        if (extracted.datePrecision === "month") {
+          setValue("datePrecision", "month")
+          setValue("approximateMonth", extracted.date)
+        } else if (extracted.datePrecision === "exact") {
+          setValue("datePrecision", "exact")
+          if (!watch("date")) {
+            setValue("date", extracted.date)
+          }
+          if (extracted.startTime && !watch("startHour")) {
+            setValue("startHour", extracted.startTime)
+          }
+          if (extracted.endTime && !watch("endHour")) {
+            setValue("endHour", extracted.endTime)
+          }
+        }
+      }
+
+      // Handle organizers
+      if (extracted.organizers && extracted.organizers.length > 0 && !selectedOrganizer?.length) {
+        setSelectedOrganizer(extracted.organizers)
+        setValue("organizer", extracted.organizers)
+      }
+
+      // Handle event type
+      if (extracted.eventType && !selectedEventType) {
+        setSelectedEventType(extracted.eventType)
+        setValue("eventType", extracted.eventType as any)
+      }
+
+      // Handle tags
+      if (extracted.tags && extracted.tags.length > 0 && tagList.length === 0) {
+        setTagList(extracted.tags)
+      }
+
+      console.log("图片分析成功，已自动填充表单", extracted)
+    } catch (error) {
+      console.error("图片分析失败:", error)
+    } finally {
+      setAnalyzing(false)
     }
   }
 
@@ -669,7 +854,7 @@ export function EventForm({
     setTagList([])
     setCurrentTag("")
     setSelectedOrganizer(undefined)
-    setSelectedEventTypes(undefined)
+    setSelectedEventType(undefined)
   }
 
   const onSubmit = async (data: EventFormData) => {
@@ -690,15 +875,32 @@ export function EventForm({
       const url = isEditMode ? `/api/events/${eventId}` : "/api/events"
       const method = isEditMode ? "PUT" : "POST"
 
+      // 根据日期精确度设置时间
+      let startTime: string
+      let endTime: string
+
+      if (data.datePrecision === "exact") {
+        // 精确日期：使用具体日期和时间
+        startTime = new Date(`${data.date}T${data.startHour}:00`).toISOString()
+        endTime = new Date(`${data.date}T${data.endHour}:00`).toISOString()
+      } else {
+        // 待定日期：使用月份第一天的全天时间
+        const [year, month] = data.approximateMonth!.split("-")
+        startTime = new Date(parseInt(year), parseInt(month) - 1, 1, 0, 0, 0).toISOString()
+        endTime = new Date(parseInt(year), parseInt(month) - 1, 1, 23, 59, 59).toISOString()
+      }
+
       const requestBody = {
         ...data,
-        startTime: new Date(`${data.date}T${data.startHour}:00`).toISOString(),
-        endTime: new Date(`${data.date}T${data.endHour}:00`).toISOString(),
+        startTime,
+        endTime,
+        datePrecision: data.datePrecision,
+        approximateMonth: data.datePrecision !== "exact" ? data.approximateMonth : null,
         tags: allTags,
         imageUrl,
         recurrenceEndDate: data.recurrenceEndDate ? new Date(data.recurrenceEndDate) : null,
         organizer: data.organizer.join(','), // Convert array to comma-separated string
-        eventType: data.eventType && data.eventType.length > 0 ? data.eventType.join(',') : null, // Convert array to comma-separated string
+        eventType: data.eventType || null, // Single value, no need to join
       }
 
       console.log("请求URL:", url)
@@ -759,14 +961,15 @@ export function EventForm({
             clearErrors={clearErrors}
             isSubmitting={isSubmitting}
             uploading={uploading}
+            analyzing={analyzing}
             imageUrl={imageUrl}
             setImageUrl={setImageUrl}
             setImageKey={setImageKey}
             handleImageUpload={handleImageUpload}
             selectedOrganizer={selectedOrganizer}
             setSelectedOrganizer={setSelectedOrganizer}
-            selectedEventTypes={selectedEventTypes}
-            setSelectedEventTypes={setSelectedEventTypes}
+            selectedEventType={selectedEventType}
+            setSelectedEventType={setSelectedEventType}
             currentTag={currentTag}
             setCurrentTag={setCurrentTag}
             tagList={tagList}
@@ -796,14 +999,15 @@ export function EventForm({
           clearErrors={clearErrors}
           isSubmitting={isSubmitting}
           uploading={uploading}
+          analyzing={analyzing}
           imageUrl={imageUrl}
           setImageUrl={setImageUrl}
           setImageKey={setImageKey}
           handleImageUpload={handleImageUpload}
           selectedOrganizer={selectedOrganizer}
           setSelectedOrganizer={setSelectedOrganizer}
-          selectedEventTypes={selectedEventTypes}
-          setSelectedEventTypes={setSelectedEventTypes}
+          selectedEventType={selectedEventType}
+          setSelectedEventType={setSelectedEventType}
           currentTag={currentTag}
           setCurrentTag={setCurrentTag}
           tagList={tagList}

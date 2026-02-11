@@ -14,5 +14,7 @@ export interface CalendarEvent {
     tags: string
     recurrenceRule?: string
     recurrenceEndDate?: string
+    datePrecision?: "exact" | "month" // 日期精确度
+    approximateMonth?: string // 近似月份（YYYY-MM）
   }
 }

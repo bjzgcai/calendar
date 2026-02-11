@@ -44,6 +44,8 @@ export async function GET(request: NextRequest) {
         start: event.startTime.toISOString(),
         end: event.endTime.toISOString(),
         backgroundColor: getEventTypeColor(primaryEventType as any).calendarBg,
+        datePrecision: (event as any).datePrecision || "exact",
+        approximateMonth: (event as any).approximateMonth || null,
         extendedProps: {
           content: event.content,
           imageUrl: event.imageUrl,
@@ -54,6 +56,8 @@ export async function GET(request: NextRequest) {
           eventType: event.eventType,
           tags: event.tags,
           recurrenceRule: event.recurrenceRule,
+          datePrecision: (event as any).datePrecision || "exact",
+          approximateMonth: (event as any).approximateMonth || null,
         },
       }
     });
@@ -100,6 +104,8 @@ export async function POST(request: NextRequest) {
       tags: body.tags || "",
       recurrenceRule: body.recurrenceRule || "none",
       recurrenceEndDate: body.recurrenceEndDate ? new Date(body.recurrenceEndDate) : null,
+      datePrecision: body.datePrecision || "exact",
+      approximateMonth: body.approximateMonth || null,
       creatorId: creatorId,
     });
 
@@ -156,6 +162,8 @@ export async function POST(request: NextRequest) {
           tags: body.tags || "",
           recurrenceRule: body.recurrenceRule || "none",
           recurrenceEndDate: body.recurrenceEndDate ? new Date(body.recurrenceEndDate) : null,
+          datePrecision: body.datePrecision || "exact",
+          approximateMonth: body.approximateMonth || null,
           creatorId: creatorId,
         });
 
