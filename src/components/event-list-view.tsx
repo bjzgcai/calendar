@@ -208,7 +208,7 @@ export function EventListView({
   }
 
   return (
-    <Card className="p-4 flex flex-col h-[calc(100vh-12rem)] md:h-auto">
+    <Card className="p-4 flex flex-col max-h-[calc(100vh-12rem)]">
       <div
         ref={containerRef}
         className="space-y-6 flex-1 overflow-y-auto"
