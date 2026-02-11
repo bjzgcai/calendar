@@ -113,3 +113,103 @@
   border-radius: 6px;
   margin-top: 8px;
 }
+
+/* Reorder event time to display below title */
+.fc-event-main {
+  display: flex;
+  flex-direction: column;
+}
+
+/* 中国节假日和调休样式 */
+
+/* 日期数字和徽章的包装器 */
+.day-number-wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  position: relative;
+}
+
+/* 节假日徽章 - 红色 */
+.holiday-badge {
+  display: inline-block;
+  padding: 1px 4px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #fff;
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  border-radius: 3px;
+  line-height: 1.2;
+  box-shadow: 0 1px 3px rgba(239, 68, 68, 0.3);
+}
+
+/* 调休补班徽章 - 橙色 */
+.workday-badge {
+  display: inline-block;
+  padding: 1px 4px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #fff;
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  border-radius: 3px;
+  line-height: 1.2;
+  box-shadow: 0 1px 3px rgba(249, 115, 22, 0.3);
+}
+
+/* 节假日单元格背景 */
+.fc-daygrid-day.holiday-cell {
+  background-color: rgba(254, 226, 226, 0.3) !important;
+}
+
+.fc-daygrid-day.holiday-cell:hover {
+  background-color: rgba(254, 226, 226, 0.5) !important;
+}
+
+/* 调休补班单元格背景 */
+.fc-daygrid-day.workday-cell {
+  background-color: rgba(255, 237, 213, 0.3) !important;
+}
+
+.fc-daygrid-day.workday-cell:hover {
+  background-color: rgba(255, 237, 213, 0.5) !important;
+}
+
+/* 月视图中的节假日单元格 */
+.fc-day-today.holiday-cell {
+  background-color: rgba(254, 226, 226, 0.4) !important;
+}
+
+.fc-day-today.workday-cell {
+  background-color: rgba(255, 237, 213, 0.4) !important;
+}
+
+/* 周视图和日视图中的时间列标题 */
+.fc-col-header-cell.holiday-cell {
+  background-color: rgba(254, 226, 226, 0.2) !important;
+}
+
+.fc-col-header-cell.workday-cell {
+  background-color: rgba(255, 237, 213, 0.2) !important;
+}
+
+/* 时间网格视图中的背景 */
+.fc-timegrid-col.holiday-cell {
+  background-color: rgba(254, 226, 226, 0.1) !important;
+}
+
+.fc-timegrid-col.workday-cell {
+  background-color: rgba(255, 237, 213, 0.1) !important;
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+  .holiday-badge,
+  .workday-badge {
+    font-size: 9px;
+    padding: 1px 3px;
+  }
+
+  .day-number-wrapper {
+    gap: 2px;
+  }
+}

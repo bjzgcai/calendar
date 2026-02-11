@@ -49,16 +49,19 @@ interface EventFormProps {
   initialValues?: Partial<EventFormData>
 }
 
-// 生成15分钟颗粒度的时间选项
+// 生成15分钟颗粒度的时间选项（8:00 - 24:00）
 const generateTimeOptions = () => {
   const options: string[] = []
-  for (let hour = 0; hour < 24; hour++) {
+  // 从8:00开始到23:45
+  for (let hour = 8; hour < 24; hour++) {
     for (let minute = 0; minute < 60; minute += 15) {
       const hourStr = hour.toString().padStart(2, "0")
       const minuteStr = minute.toString().padStart(2, "0")
       options.push(`${hourStr}:${minuteStr}`)
     }
   }
+  // 添加24:00（午夜）
+  options.push("24:00")
   return options
 }
 
@@ -431,7 +434,7 @@ function EventFormContent({
                 </div>
               )}
               <p className="text-xs text-muted-foreground">
-                例如：#zbar# #动手实践# #具身智能# #直播#
+                例如：#zbar# #动手实践# #具身智能# #直播# #外事活动# #截止日期#等自定义标签。
               </p>
             </div>
           </div>
@@ -457,7 +460,7 @@ function EventFormContent({
             取消
           </Button>
           <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? (isEditMode ? "更新中..." : "创建中...") : (isEditMode ? "更新活动" : "创建活动")}
+            {isSubmitting ? (isEditMode ? "更新中..." : "创建中...") : (isEditMode ? "更新" : "创建")}
           </Button>
         </DialogFooter>
       </form>

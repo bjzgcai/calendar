@@ -1,13 +1,17 @@
 "use client"
 
 import { useState } from "react"
-import { Calendar as CalendarIcon } from "lucide-react"
+import { Calendar as CalendarIcon, List } from "lucide-react"
 import { EventCalendar } from "@/components/event-calendar"
+import { EventListView } from "@/components/event-list-view"
 import { EventDetail } from "@/components/event-detail"
 import { EventForm } from "@/components/event-form"
 import { EventFilter } from "@/components/event-filter"
 import { UserMenu } from "@/components/user-menu"
 import { CalendarEvent } from "@/types/calendar"
+import { Button } from "@/components/ui/button"
+
+type ViewMode = "month" | "week" | "day" | "list"
 
 export default function Home() {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null)
@@ -19,6 +23,7 @@ export default function Home() {
   const [tagsFilter, setTagsFilter] = useState<string[]>([])
   const [myEventsFilter, setMyEventsFilter] = useState<boolean>(false)
   const [refreshKey, setRefreshKey] = useState(0)
+  const [viewMode, setViewMode] = useState<ViewMode>("week")
 
   const handleEventClick = (event: CalendarEvent) => {
     setSelectedEvent(event)
@@ -123,6 +128,43 @@ export default function Home() {
               </p>
             </div>
             <div className="flex items-center gap-3">
+              {/* 视图切换按钮 */}
+              <div className="flex items-center gap-1 bg-secondary/50 rounded-lg p-1">
+                <Button
+                  variant={viewMode === "month" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setViewMode("month")}
+                  className="h-8"
+                >
+                  月
+                </Button>
+                <Button
+                  variant={viewMode === "week" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setViewMode("week")}
+                  className="h-8"
+                >
+                  周
+                </Button>
+                <Button
+                  variant={viewMode === "day" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setViewMode("day")}
+                  className="h-8"
+                >
+                  日
+                </Button>
+                <Button
+                  variant={viewMode === "list" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setViewMode("list")}
+                  className="h-8"
+                >
+                  <List className="h-4 w-4 mr-1" />
+                  列表
+                </Button>
+              </div>
+
               <button
                 onClick={() => setFormOpen(true)}
                 className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 py-2"
@@ -147,17 +189,35 @@ export default function Home() {
             />
           </div>
 
-          {/* Calendar */}
+          {/* Calendar or List View */}
           <div className="lg:col-span-3">
-            <EventCalendar
-              key={refreshKey}
-              onEventClick={handleEventClick}
-              onTimeSlotSelect={handleTimeSlotSelect}
-              eventTypeFilter={eventTypeFilter}
-              organizerFilter={organizerFilter}
-              tagsFilter={tagsFilter}
-              myEventsFilter={myEventsFilter}
-            />
+            {viewMode === "list" ? (
+              <EventListView
+                key={refreshKey}
+                onEventClick={handleEventClick}
+                eventTypeFilter={eventTypeFilter}
+                organizerFilter={organizerFilter}
+                tagsFilter={tagsFilter}
+                myEventsFilter={myEventsFilter}
+              />
+            ) : (
+              <EventCalendar
+                key={`${refreshKey}-${viewMode}`}
+                onEventClick={handleEventClick}
+                onTimeSlotSelect={handleTimeSlotSelect}
+                currentView={
+                  viewMode === "month"
+                    ? "dayGridMonth"
+                    : viewMode === "week"
+                    ? "timeGridWeek"
+                    : "timeGridDay"
+                }
+                eventTypeFilter={eventTypeFilter}
+                organizerFilter={organizerFilter}
+                tagsFilter={tagsFilter}
+                myEventsFilter={myEventsFilter}
+              />
+            )}
           </div>
         </div>
 

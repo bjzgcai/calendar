@@ -13,27 +13,27 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useMediaQuery } from "@/hooks/use-media-query"
 import { CalendarEvent } from "@/types/calendar"
+import { getHolidayInfo } from "@/lib/chinese-holidays"
 
 interface EventCalendarProps {
   onEventClick?: (event: CalendarEvent) => void
   onTimeSlotSelect?: (start: Date, end: Date) => void
+  onViewChange?: (view: string) => void
+  currentView?: string
   eventTypeFilter?: string | string[]
   organizerFilter?: string | string[]
   tagsFilter?: string[]
   myEventsFilter?: boolean
 }
 
-export function EventCalendar({ onEventClick, onTimeSlotSelect, eventTypeFilter, organizerFilter, tagsFilter, myEventsFilter }: EventCalendarProps) {
+export function EventCalendar({ onEventClick, onTimeSlotSelect, onViewChange, currentView, eventTypeFilter, organizerFilter, tagsFilter, myEventsFilter }: EventCalendarProps) {
   const [events, setEvents] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const isDesktop = useMediaQuery("(min-width: 768px)")
 
   // PC端默认周视图，Mobile端默认日视图
-  const [initialView, setInitialView] = useState(isDesktop ? "timeGridWeek" : "timeGridDay")
-
-  useEffect(() => {
-    setInitialView(isDesktop ? "timeGridWeek" : "timeGridDay")
-  }, [isDesktop])
+  const defaultView = isDesktop ? "timeGridWeek" : "timeGridDay"
+  const initialView = currentView || defaultView
 
   const fetchEvents = useCallback(async () => {
     setLoading(true)
@@ -124,6 +124,23 @@ export function EventCalendar({ onEventClick, onTimeSlotSelect, eventTypeFilter,
     info.view.calendar.unselect()
   }
 
+  const handleDateClick = (info: any) => {
+    const clickedDate = info.date as Date
+
+    // 为月视图创建一个默认的时间段（例如：9:00 - 10:00）
+    const start = new Date(clickedDate)
+    start.setHours(9, 0, 0, 0)
+
+    const end = new Date(clickedDate)
+    end.setHours(10, 0, 0, 0)
+
+    onTimeSlotSelect?.(start, end)
+  }
+
+  const handleViewChange = (info: any) => {
+    onViewChange?.(info.view.type)
+  }
+
   const handleEventDidMount = (info: any) => {
     const event = info.event
     const startTime = event.start
@@ -180,9 +197,45 @@ export function EventCalendar({ onEventClick, onTimeSlotSelect, eventTypeFilter,
       theme: "event-tooltip",
       placement: "top",
       arrow: true,
-      interactive: false,
+      interactive: true, // Allow hovering over tooltip
+      interactiveBorder: 10, // Add invisible bridge area to prevent gap issues
+      offset: [0, 5], // Reduce gap between event and tooltip
+      delay: [0, 100], // Small delay before hiding
       appendTo: () => document.body,
     })
+  }
+
+  const handleDayCellDidMount = (info: any) => {
+    const date = info.date
+    const holidayInfo = getHolidayInfo(date)
+
+    if (!holidayInfo) return
+
+    // 在日期单元格添加节假日标记
+    const dayNumberEl = info.el.querySelector('.fc-daygrid-day-number, .fc-col-header-cell-cushion')
+    if (!dayNumberEl) return
+
+    // 创建节假日标记元素
+    const badge = document.createElement('span')
+    badge.className = holidayInfo.isHoliday ? 'holiday-badge' : 'workday-badge'
+    badge.textContent = holidayInfo.isHoliday ? '休' : '班'
+    badge.title = holidayInfo.name
+
+    // 将标记插入到日期数字旁边
+    if (dayNumberEl.parentNode) {
+      const wrapper = document.createElement('div')
+      wrapper.className = 'day-number-wrapper'
+      dayNumberEl.parentNode.insertBefore(wrapper, dayNumberEl)
+      wrapper.appendChild(dayNumberEl)
+      wrapper.appendChild(badge)
+    }
+
+    // 为节假日单元格添加背景色
+    if (holidayInfo.isHoliday) {
+      info.el.classList.add('holiday-cell')
+    } else {
+      info.el.classList.add('workday-cell')
+    }
   }
 
   if (loading) {
@@ -204,13 +257,16 @@ export function EventCalendar({ onEventClick, onTimeSlotSelect, eventTypeFilter,
         headerToolbar={{
           left: "prev,next today",
           center: "title",
-          right: "dayGridMonth,timeGridWeek,timeGridDay,listWeek",
+          right: "",
         }}
         events={events}
         eventClick={handleEventClick}
         eventDidMount={handleEventDidMount}
+        dayCellDidMount={handleDayCellDidMount}
         select={handleSelect}
         selectAllow={handleSelectAllow}
+        dateClick={handleDateClick}
+        viewDidMount={handleViewChange}
         editable={false}
         selectable={true}
         height="auto"
@@ -223,8 +279,8 @@ export function EventCalendar({ onEventClick, onTimeSlotSelect, eventTypeFilter,
           list: "列表",
         }}
         allDaySlot={false}
-        slotMinTime="06:00:00"
-        slotMaxTime="26:00:00"
+        slotMinTime="08:00:00"
+        slotMaxTime="24:00:00"
         dayHeaderFormat={{
           weekday: "short",
         }}
