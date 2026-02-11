@@ -1,4 +1,4 @@
-import { eq, and, SQL, gte, lte, like, isNull, or } from "drizzle-orm";
+import { eq, and, SQL, gte, lte, like, isNull, or, sql } from "drizzle-orm";
 import { getDb } from "coze-coding-dev-sdk";
 import { events, insertEventWithCoercionSchema, updateEventWithCoercionSchema } from "./shared/schema";
 import type { Event, InsertEvent, UpdateEvent, EventType } from "./shared/schema";
@@ -37,7 +37,7 @@ export class EventManager {
       const typeList = eventType.split(',').filter(t => t.trim());
       if (typeList.length > 0) {
         const typeConditions = typeList.map(type =>
-          like(events.eventType, `%${type.trim()}%`)
+          sql`${events.eventType}::text LIKE ${`%${type.trim()}%`}`
         );
         conditions.push(or(...typeConditions) as SQL);
       }
