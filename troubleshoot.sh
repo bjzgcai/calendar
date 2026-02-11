@@ -128,18 +128,18 @@ fi
 # Check port availability
 log_section "7. Port Check"
 if command -v ss &> /dev/null; then
-    if ss -tuln | grep -q ':5000 '; then
-        log_info "Port 5000 is in use:"
-        ss -tulnp | grep ':5000 '
+    if ss -tuln | grep -q ':5002 '; then
+        log_info "Port 5002 is in use:"
+        ss -tulnp | grep ':5002 '
     else
-        log_error "Port 5000 is not in use (application may not be listening)"
+        log_error "Port 5002 is not in use (application may not be listening)"
     fi
 else
-    if netstat -tuln | grep -q ':5000 '; then
-        log_info "Port 5000 is in use:"
-        netstat -tulnp | grep ':5000 '
+    if netstat -tuln | grep -q ':5002 '; then
+        log_info "Port 5002 is in use:"
+        netstat -tulnp | grep ':5002 '
     else
-        log_error "Port 5000 is not in use (application may not be listening)"
+        log_error "Port 5002 is not in use (application may not be listening)"
     fi
 fi
 
@@ -150,9 +150,9 @@ ls -ld "$PROJECT_DIR" || log_error "Project directory permissions cannot be chec
 
 # Test application endpoint
 log_section "9. Application Endpoint Test"
-log_info "Testing http://localhost:5000 ..."
+log_info "Testing http://localhost:5002 ..."
 if command -v curl &> /dev/null; then
-    HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:5000 --connect-timeout 5 || echo "000")
+    HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:5002 --connect-timeout 5 || echo "000")
     if [ "$HTTP_STATUS" = "200" ] || [ "$HTTP_STATUS" = "301" ] || [ "$HTTP_STATUS" = "302" ]; then
         log_success "Application responds with HTTP $HTTP_STATUS"
     else

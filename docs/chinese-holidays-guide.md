@@ -75,10 +75,10 @@ crontab -e
 
 ```bash
 # GET - 检查是否需要更新
-curl http://localhost:5000/api/holidays/check-update
+curl http://localhost:5002/api/holidays/check-update
 
 # POST - 获取指定年份的节假日数据
-curl -X POST http://localhost:5000/api/holidays/check-update \
+curl -X POST http://localhost:5002/api/holidays/check-update \
   -H "Content-Type: application/json" \
   -d '{"year": 2027}'
 ```

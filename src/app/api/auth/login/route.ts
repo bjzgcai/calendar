@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
 
   // 获取当前应用的 URL 来构建回调地址
   const protocol = process.env.NODE_ENV === "production" ? "https" : "http";
-  const host = request.headers.get("host") || "localhost:5000";
+  const host = request.headers.get("host") || "localhost:5002";
   const redirectUri = `${protocol}://${host}/api/auth/callback`;
 
   // 生成随机 state 用于防止 CSRF 攻击

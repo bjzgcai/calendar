@@ -1,9 +1,9 @@
 #!/bin/bash
 set -Eeuo pipefail
 
-PORT=5000
+PORT=5002
 NODE_ENV=development
-DEPLOY_RUN_PORT=5000
+DEPLOY_RUN_PORT=5002
 
 kill_port_if_listening() {
     local pids

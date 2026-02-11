@@ -13,9 +13,9 @@ Full-stack Next.js event calendar for managing college activities (中关村学�
 
 ## Key Commands
 ```bash
-pnpm dev         # Dev server on port 5000 (with Turbopack)
+pnpm dev         # Dev server on port 5002 (with Turbopack)
 pnpm build       # Production build
-pnpm start       # Start production server on port 5000
+pnpm start       # Start production server on port 5002
 pnpm install     # Install dependencies
 ```
 

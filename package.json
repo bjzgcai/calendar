@@ -4,10 +4,10 @@
   "private": true,
   "scripts": {
     "build": "next build",
-    "dev": "next dev --turbopack --port 5000",
+    "dev": "next dev --turbopack --port 5002",
     "preinstall": "npx only-allow pnpm",
     "lint": "eslint",
-    "start": "next start --port 5000",
+    "start": "next start --port 5002",
     "ts-check": "tsc -p tsconfig.json",
     "check-holidays": "tsx scripts/check-holiday-update.ts"
   },
