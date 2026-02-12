@@ -60,7 +60,7 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{__html: `
     document.addEventListener('DOMContentLoaded', function () {
         if (typeof dd === 'undefined') {
-            alert("当前不在钉钉环境");
+            console.log("当前不在钉钉环境");
             return;
         }
 
