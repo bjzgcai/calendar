@@ -48,12 +48,13 @@ export function UserSelector({ label, value, onChange, placeholder = "搜索钉�
 
           if (data.success) {
             // 转换为 RequiredAttendee 格式
-            allUsers = data.data.map((user: any) => ({
+            const fetchedUsers = data.data.map((user: any) => ({
               userid: user.userid,
               name: user.name,
             }))
+            allUsers = fetchedUsers
             // 保存到缓存
-            setCachedDingTalkUsers(allUsers)
+            setCachedDingTalkUsers(fetchedUsers)
           } else {
             allUsers = []
           }
