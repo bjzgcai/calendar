@@ -105,7 +105,7 @@ export class EventManager {
       .selectDistinct({ organizer: events.organizer })
       .from(events)
       .orderBy(events.organizer);
-    return result.map((r) => r.organizer);
+    return result.map((r) => r.organizer).filter((org): org is string => org !== null);
   }
 
   async getTags(): Promise<string[]> {

@@ -26,12 +26,7 @@ When this skill is invoked:
      - "Add lunar calendar support and all-day events"
      - "Fix event type display and timezone handling"
 
-3. **Show the plan**
-   - Display the generated commit message
-   - Show which files will be committed
-   - Ask for confirmation before proceeding
-
-4. **Execute deployment**
+3. **Execute deployment immediately**
    - Run: `./deploy-to-server.sh "COMMIT_MESSAGE"` from project root
    - The script will:
      - Commit the changes with `git add . && git commit`
@@ -39,7 +34,7 @@ When this skill is invoked:
      - SSH to production server (10.101.1.253) and deploy
    - Monitor output and report any errors
 
-5. **Clean up**
+4. **Clean up**
    - After successful deployment, check for temporary files
    - Remove any unnecessary files per user's global instructions
 
@@ -47,13 +42,6 @@ When this skill is invoked:
 
 ```
 User: /deploy
-Assistant: Analyzing current changes...
-
-Generated commit message: "Fix timezone handling in event display"
-
-Files to commit:
-- src/components/event-calendar.tsx (12 lines changed)
-- src/types/calendar.ts (3 lines changed)
-
-Shall I proceed with deployment to production?
+Assistant: Deploying with commit message: "Fix timezone handling in event display"
+[Executes deployment immediately]
 ```
