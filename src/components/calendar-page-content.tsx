@@ -20,8 +20,11 @@ export function CalendarPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
-  // 从 URL 读取初始视图模式
+  // 从 URL 读取初始视图模式和日期
   const initialViewMode = (searchParams.get("view") as ViewMode) || "year"
+  const initialDate = searchParams.get("date")
+    ? new Date(searchParams.get("date")!)
+    : undefined
 
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null)
   const [detailOpen, setDetailOpen] = useState(false)
@@ -33,13 +36,20 @@ export function CalendarPageContent() {
   const [myEventsFilter, setMyEventsFilter] = useState<boolean>(false)
   const [refreshKey, setRefreshKey] = useState(0)
   const [viewMode, setViewMode] = useState<ViewMode>(initialViewMode)
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(initialDate)
 
   // 同步 viewMode 到 URL
   useEffect(() => {
     const params = new URLSearchParams(searchParams.toString())
     params.set("view", viewMode)
+
+    // Only keep date parameter if it exists
+    if (!selectedDate && params.has("date")) {
+      params.delete("date")
+    }
+
     router.push(`?${params.toString()}`, { scroll: false })
-  }, [viewMode, router])
+  }, [viewMode, router, searchParams, selectedDate])
 
   const handleEventClick = (event: CalendarEvent) => {
     setSelectedEvent(event)
@@ -130,6 +140,17 @@ export function CalendarPageContent() {
     console.log("=== 表单成功回调完成 ===")
   }
 
+  const handleMonthClick = (date: Date) => {
+    setSelectedDate(date)
+    setViewMode("month")
+
+    // Update URL with the selected month
+    const params = new URLSearchParams(searchParams.toString())
+    params.set("view", "month")
+    params.set("date", date.toISOString())
+    router.push(`?${params.toString()}`, { scroll: false })
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       <div className="container mx-auto p-4 md:p-8">
@@ -151,7 +172,10 @@ export function CalendarPageContent() {
                 <Button
                   variant={viewMode === "year" ? "default" : "ghost"}
                   size="sm"
-                  onClick={() => setViewMode("year")}
+                  onClick={() => {
+                    setViewMode("year")
+                    setSelectedDate(undefined)
+                  }}
                   className="h-8"
                 >
                   年
@@ -183,7 +207,10 @@ export function CalendarPageContent() {
                 <Button
                   variant={viewMode === "list" ? "default" : "ghost"}
                   size="sm"
-                  onClick={() => setViewMode("list")}
+                  onClick={() => {
+                    setViewMode("list")
+                    setSelectedDate(undefined)
+                  }}
                   className="h-8"
                 >
                   <List className="h-4 w-4 mr-1" />
@@ -230,6 +257,7 @@ export function CalendarPageContent() {
               <EventYearListView
                 key={refreshKey}
                 onEventClick={handleEventClick}
+                onMonthClick={handleMonthClick}
                 eventTypeFilter={eventTypeFilter}
                 organizerFilter={organizerFilter}
                 tagsFilter={tagsFilter}
@@ -247,6 +275,7 @@ export function CalendarPageContent() {
                     ? "timeGridWeek"
                     : "timeGridDay"
                 }
+                initialDate={selectedDate}
                 eventTypeFilter={eventTypeFilter}
                 organizerFilter={organizerFilter}
                 tagsFilter={tagsFilter}

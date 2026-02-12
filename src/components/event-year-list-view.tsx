@@ -15,6 +15,7 @@ import { DatePrecision } from "@/storage/database/shared/schema"
 
 interface EventYearListViewProps {
   onEventClick?: (event: CalendarEvent) => void
+  onMonthClick?: (date: Date) => void
   eventTypeFilter?: string | string[]
   organizerFilter?: string | string[]
   tagsFilter?: string[]
@@ -28,6 +29,7 @@ interface GroupedEvents {
 
 export function EventYearListView({
   onEventClick,
+  onMonthClick,
   eventTypeFilter,
   organizerFilter,
   tagsFilter,
@@ -152,7 +154,10 @@ export function EventYearListView({
               <Card key={month} className="p-4 hover:shadow-lg transition-shadow">
                 {/* 月份标题 */}
                 <div className="mb-3 pb-2 border-b">
-                  <h3 className="text-lg font-semibold text-foreground">
+                  <h3
+                    className="text-lg font-semibold text-foreground cursor-pointer hover:text-primary transition-colors"
+                    onClick={() => onMonthClick?.(monthObj)}
+                  >
                     {format(monthObj, "yyyy年MM月", { locale: zhCN })}
                   </h3>
                   <div className="text-xs text-muted-foreground mt-0.5">

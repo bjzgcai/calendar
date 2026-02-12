@@ -28,13 +28,14 @@ interface EventCalendarProps {
   onTimeSlotSelect?: (start: Date, end: Date) => void
   onViewChange?: (view: string) => void
   currentView?: string
+  initialDate?: Date
   eventTypeFilter?: string | string[]
   organizerFilter?: string | string[]
   tagsFilter?: string[]
   myEventsFilter?: boolean
 }
 
-export function EventCalendar({ onEventClick, onTimeSlotSelect, onViewChange, currentView, eventTypeFilter, organizerFilter, tagsFilter, myEventsFilter }: EventCalendarProps) {
+export function EventCalendar({ onEventClick, onTimeSlotSelect, onViewChange, currentView, initialDate, eventTypeFilter, organizerFilter, tagsFilter, myEventsFilter }: EventCalendarProps) {
   const [events, setEvents] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const isDesktop = useMediaQuery("(min-width: 768px)")
@@ -455,6 +456,7 @@ export function EventCalendar({ onEventClick, onTimeSlotSelect, onViewChange, cu
       <FullCalendar
         plugins={[dayGridPlugin, timeGridPlugin, listPlugin, interactionPlugin, multiMonthPlugin]}
         initialView={initialView}
+        initialDate={initialDate}
         timeZone="local"
         headerToolbar={{
           left: "prev,next today",
