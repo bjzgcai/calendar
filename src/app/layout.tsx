@@ -57,7 +57,38 @@ export default function RootLayout({
           src="https://g.alicdn.com/dingding/dingtalk-jsapi/2.14.1/dingtalk.open.js"
           strategy="beforeInteractive"
         />
+        <script dangerouslySetInnerHTML={{__html: `
+    document.addEventListener('DOMContentLoaded', function () {
+        if (typeof dd === 'undefined') {
+            alert("当前不在钉钉环境");
+            return;
+        }
+
+        dd.ready(function () {
+            console.log("钉钉环境加载完成");
+
+            document.querySelectorAll('.meeting-form-btn').forEach(btn => {
+                btn.onclick = function () {
+                    dd.biz.util.openLink({
+                        url: "https://kojfwd.aliwork.com/APP_H3NOAOEJWMGQB1ZT7GPQ/manage/FORM-F8356C0E992F4748A9F13528FF4D00C7KO1I?corpid=ding216d3a4e9fdd44cef5bf40eda33b7ba0&viewUuid=VIEW-6E0F07DEDE4C428FB47FABF66266D48E&dtcode=1da9446dcb8b35668d9d5f6ab4ff9280",
+                        onSuccess: function(result) {
+                            console.log('链接打开成功', result);
+                        },
+                        onFail: function(err) {
+                            console.error('链接打开失败', err);
+                        }
+                    });
+                };
+            });
+        });
+
+        dd.error(function(err){
+            console.log('dd error:', err);
+        });
+    });
+`}} />
       </head>
+      {/* @ts-ignore */}
       <body className={`antialiased`}>
         {isDev && <Inspector />}
         <DingTalkInit />
