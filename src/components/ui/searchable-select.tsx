@@ -40,7 +40,10 @@ export function SearchableSelect({
   )
 
   const selectedValue = value === "" ? undefined : value
-  const selectedArray = multiple ? (Array.isArray(value) ? value : (value ? [value] : [])) : []
+  // Ensure selectedArray only contains strings
+  const selectedArray = multiple
+    ? (Array.isArray(value) ? value.filter((v): v is string => typeof v === 'string') : (value ? [value] : []))
+    : []
 
   const handleSelect = (option: string) => {
     if (multiple) {
@@ -92,9 +95,10 @@ export function SearchableSelect({
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [])
 
+  // Ensure displayText is always a string
   const displayText = multiple && selectedArray.length > 0
     ? `已选择 ${selectedArray.length} 项`
-    : (selectedValue || placeholder)
+    : (typeof selectedValue === 'string' ? selectedValue : placeholder)
 
   return (
     <div className="space-y-2" ref={containerRef}>
@@ -126,7 +130,7 @@ export function SearchableSelect({
         >
           <div className="flex-1 flex flex-wrap gap-1">
             {multiple && selectedArray.length > 0 ? (
-              selectedArray.map((item) => (
+              selectedArray.filter((item): item is string => typeof item === 'string').map((item) => (
                 <span
                   key={item}
                   className="inline-flex items-center gap-1 px-2 py-0.5 bg-primary/10 text-primary rounded text-sm"

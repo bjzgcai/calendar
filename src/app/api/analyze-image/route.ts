@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
 5. 结束时间（HH:MM格式，24小时制）
 6. 活动地点
 7. 主办方/发起者（可能是多个，用逗号分隔。常见的有：创新创业中心、国际交流中心、学生事务中心、教学支持中心、智慧学习中心、生活服务中心、行政管理中心、学生社团、其他）
-8. 活动类型（从以下选择最匹配的：学术研究、教学培训、学生活动、产学研合作、行政管理、重要截止）
+8. 活动类型（从以下选择最匹配的：学术研究、教学培训、学生活动、产学研合作、行政管理、重要节点）
 9. 相关标签（用 # 包裹，例如：#讲座# #直播#）
 10. 活动链接/报名链接
 
@@ -166,7 +166,7 @@ export async function POST(request: NextRequest) {
       "学生活动": "student_activities",
       "产学研合作": "industry_academia",
       "行政管理": "administration",
-      "重要截止": "important_deadlines",
+      "重要节点": "important_deadlines",
     };
 
     // Normalize the extracted data

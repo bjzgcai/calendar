@@ -26,15 +26,15 @@ export function formatDateByPrecision(
 
 /**
  * 为"日期待定"的事件生成显示日期
- * 在月视图中显示在月初（1号）
+ * 在月视图中显示在15号
  */
 export function getDisplayDateForUncertainEvent(approximateMonth: string): {
   start: Date
   end: Date
 } {
   const [year, month] = approximateMonth.split("-").map(Number)
-  const start = new Date(year, month - 1, 1, 0, 0, 0) // 月初 00:00
-  const end = new Date(year, month - 1, 1, 23, 59, 59) // 月初 23:59
+  const start = new Date(year, month - 1, 15, 0, 0, 0) // 15号 00:00
+  const end = new Date(year, month - 1, 15, 23, 59, 59) // 15号 23:59
 
   return { start, end }
 }

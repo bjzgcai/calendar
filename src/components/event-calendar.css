@@ -1,3 +1,113 @@
+/* ==========================================
+   农历日期样式（周视图表头）
+   ========================================== */
+
+/* 月视图表头 - 中文星期 */
+.fc-col-header-cell-custom-month {
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+  padding: 8px 4px;
+}
+
+/* Dark mode support for month view header */
+@media (prefers-color-scheme: dark) {
+  .fc-col-header-cell-custom-month {
+    color: #e5e7eb;
+  }
+}
+
+/* 自定义表头容器 */
+.fc-col-header-cell-custom {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 4px;
+}
+
+/* 星期几 */
+.fc-col-header-cell-custom .fc-weekday {
+  font-size: 12px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+/* 日期信息容器 */
+.fc-col-header-cell-custom .fc-date-info {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+/* 公历日期（大号） */
+.fc-col-header-cell-custom .fc-solar-date {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1f2937;
+  line-height: 1;
+}
+
+/* 农历日期（小号） */
+.fc-col-header-cell-custom .fc-lunar-date {
+  font-size: 11px;
+  color: #9ca3af;
+  font-weight: 500;
+  line-height: 1;
+}
+
+/* 今天的样式 */
+.fc-day-today .fc-col-header-cell-custom .fc-solar-date {
+  color: #3b82f6;
+}
+
+.fc-day-today .fc-col-header-cell-custom .fc-lunar-date {
+  color: #60a5fa;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .fc-col-header-cell-custom .fc-weekday {
+    color: #9ca3af;
+  }
+
+  .fc-col-header-cell-custom .fc-solar-date {
+    color: #f3f4f6;
+  }
+
+  .fc-col-header-cell-custom .fc-lunar-date {
+    color: #6b7280;
+  }
+
+  .fc-day-today .fc-col-header-cell-custom .fc-solar-date {
+    color: #60a5fa;
+  }
+
+  .fc-day-today .fc-col-header-cell-custom .fc-lunar-date {
+    color: #93c5fd;
+  }
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+  .fc-col-header-cell-custom {
+    gap: 2px;
+    padding: 6px 2px;
+  }
+
+  .fc-col-header-cell-custom .fc-weekday {
+    font-size: 10px;
+  }
+
+  .fc-col-header-cell-custom .fc-solar-date {
+    font-size: 16px;
+  }
+
+  .fc-col-header-cell-custom .fc-lunar-date {
+    font-size: 9px;
+  }
+}
+
 /* Mobile-responsive header toolbar */
 @media (max-width: 768px) {
   .fc-header-toolbar.fc-toolbar {

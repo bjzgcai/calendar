@@ -72,7 +72,7 @@ Chinese labels are automatically mapped to English keys:
 - 学生活动 → `student_activities`
 - 产学研合作 → `industry_academia`
 - 行政管理 → `administration`
-- 重要截止 → `important_deadlines`
+- 重要节点 → `important_deadlines`
 
 ### Date Precision Handling
 - `exact`: Full date with time (YYYY-MM-DD + HH:MM)

@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button"
 import { useMediaQuery } from "@/hooks/use-media-query"
 import { CalendarEvent } from "@/types/calendar"
 import { getHolidayInfo } from "@/lib/chinese-holidays"
+import { getLunarDayText, getCalendarInfo } from "@/lib/lunar-calendar"
 import {
   formatDateByPrecision,
   getDisplayDateForUncertainEvent,
@@ -395,6 +396,50 @@ export function EventCalendar({ onEventClick, onTimeSlotSelect, onViewChange, cu
     }
   }
 
+  // 自定义日期表头渲染（添加农历日期）
+  const handleDayHeaderContent = (args: any) => {
+    const viewType = args.view.type
+    const date = args.date
+
+    // 月视图：显示中文星期格式
+    if (viewType === 'dayGridMonth') {
+      const dayOfWeek = date.getDay()
+      const chineseDayNames = ['日', '周一', '周二', '周三', '周四', '周五', '周六']
+
+      return {
+        html: `<div class="fc-col-header-cell-custom-month">${chineseDayNames[dayOfWeek]}</div>`
+      }
+    }
+
+    // 只在周视图和日视图显示农历日期
+    if (viewType !== 'timeGridWeek' && viewType !== 'timeGridDay') {
+      return undefined // Return undefined to use FullCalendar's default rendering
+    }
+
+    const lunarInfo = getCalendarInfo(date)
+    const dayOfWeek = args.text // 星期几
+
+    // 获取公历日期
+    const solarDay = date.getDate()
+
+    // 获取农历日期
+    const lunarDay = lunarInfo.isFirstDayOfMonth
+      ? lunarInfo.lunarMonthInChinese // 如果是初一，显示月份
+      : lunarInfo.lunarDayInChinese
+
+    return {
+      html: `
+        <div class="fc-col-header-cell-custom">
+          <div class="fc-weekday">${dayOfWeek}</div>
+          <div class="fc-date-info">
+            <span class="fc-solar-date">${solarDay}</span>
+            <span class="fc-lunar-date">${lunarDay}</span>
+          </div>
+        </div>
+      `
+    }
+  }
+
   if (loading) {
     return (
       <Card className="p-8">
@@ -421,6 +466,7 @@ export function EventCalendar({ onEventClick, onTimeSlotSelect, onViewChange, cu
         eventDidMount={handleEventDidMount}
         dayCellDidMount={handleDayCellDidMount}
         moreLinkDidMount={handleMoreLinkDidMount}
+        dayHeaderContent={handleDayHeaderContent}
         select={handleSelect}
         selectAllow={handleSelectAllow}
         dateClick={handleDateClick}
@@ -446,6 +492,12 @@ export function EventCalendar({ onEventClick, onTimeSlotSelect, onViewChange, cu
         titleFormat={{
           month: "long",
           year: "numeric",
+          day: "numeric",
+        }}
+        views={{
+          timeGridDay: {
+            titleFormat: { year: "numeric", month: "long", day: "numeric" },
+          },
         }}
         dayMaxEvents={true}
       />

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Filter, X, Search } from "lucide-react"
+import { Filter, X, Search, Tag } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { SearchableSelect } from "@/components/ui/searchable-select"
@@ -147,7 +147,9 @@ export function EventFilter({ onEventTypeChange, onOrganizerChange, onTagsChange
             label="活动类型"
             placeholder="全部类型"
             options={eventTypeOptions.map(opt => opt.label)}
-            value={selectedEventType?.map(type => EVENT_TYPE_COLORS[type as EventType]?.label)}
+            value={selectedEventType
+              ?.map(type => EVENT_TYPE_COLORS[type as EventType]?.label)
+              .filter((label): label is string => typeof label === 'string')}
             onChange={(labels) => {
               const arrayLabels = Array.isArray(labels) ? labels : (labels ? [labels] : [])
               const eventTypes = arrayLabels.map(label => {
@@ -190,7 +192,10 @@ export function EventFilter({ onEventTypeChange, onOrganizerChange, onTagsChange
           />
 
           <div className="space-y-2">
-            <Label>标签</Label>
+            <div className="flex items-center gap-2">
+              <Tag className="h-4 w-4" />
+              <Label>标签</Label>
+            </div>
 
             {/* Selected Tags Pills */}
             {selectedTags.length > 0 && (

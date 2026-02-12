@@ -13,6 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge"
 import { SearchableSelect } from "@/components/ui/searchable-select"
 import { Calendar, Upload, X, Plus, FlaskConical, BookOpen, PartyPopper, Handshake, FileText, Clock } from "lucide-react"
+import { Spinner } from "@/components/ui/spinner"
+import { Switch } from "@/components/ui/switch"
 import { ORGANIZER_OPTIONS } from "@/storage/database"
 
 const eventSchema = z.object({
@@ -21,6 +23,7 @@ const eventSchema = z.object({
   content: z.string().min(1, "内容不能为空"),
   datePrecision: z.enum(["exact", "month"]),
   date: z.string().optional(),
+  isAllDay: z.boolean().optional(),
   startHour: z.string().optional(),
   endHour: z.string().optional(),
   approximateMonth: z.string().optional(), // YYYY-MM 格式
@@ -40,7 +43,7 @@ const eventSchema = z.object({
   recurrenceRule: z.enum(["none", "daily", "weekly", "monthly"]),
   recurrenceEndDate: z.string().optional(),
 }).superRefine((data, ctx) => {
-  // 精确日期时，date、startHour、endHour 必填
+  // 精确日期时，date 必填
   if (data.datePrecision === "exact") {
     if (!data.date) {
       ctx.addIssue({
@@ -49,19 +52,22 @@ const eventSchema = z.object({
         path: ["date"],
       })
     }
-    if (!data.startHour) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "开始时间不能为空",
-        path: ["startHour"],
-      })
-    }
-    if (!data.endHour) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "结束时间不能为空",
-        path: ["endHour"],
-      })
+    // 只有在非全天事件时，时间才是必填的
+    if (!data.isAllDay) {
+      if (!data.startHour) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "开始时间不能为空",
+          path: ["startHour"],
+        })
+      }
+      if (!data.endHour) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "结束时间不能为空",
+          path: ["endHour"],
+        })
+      }
     }
   }
 
@@ -141,7 +147,7 @@ const EVENT_TYPE_CONFIG = {
     description: "部门会议、行政通知、制度培训、管理例会等",
   },
   important_deadlines: {
-    label: "重要截止",
+    label: "重要节点",
     icon: Clock,
     color: "text-red-600",
     bgColor: "bg-red-50",
@@ -201,7 +207,12 @@ function EventFormContent({
                   disabled={uploading || analyzing}
                 />
                 {uploading && <span className="text-sm text-muted-foreground">上传中...</span>}
-                {analyzing && <span className="text-sm text-muted-foreground">AI分析中...</span>}
+                {analyzing && (
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/10 dark:bg-blue-500/20 border border-blue-500/30 rounded-md">
+                    <Spinner className="size-4 text-blue-600 dark:text-blue-400" />
+                    <span className="text-sm font-medium text-blue-700 dark:text-blue-300">AI分析中...</span>
+                  </div>
+                )}
               </div>
               {(uploading || analyzing) && (
                 <p className="text-xs text-muted-foreground">
@@ -356,7 +367,19 @@ function EventFormContent({
                   <Label htmlFor="date">
                     活动日期 <span className="text-destructive">*</span>
                   </Label>
-                  <Input id="date" type="date" {...register("date")} />
+                  <div className="flex items-center gap-4">
+                    <Input id="date" type="date" {...register("date")} className="flex-1" />
+                    <div className="flex items-center space-x-2 whitespace-nowrap">
+                      <Switch
+                        id="isAllDay"
+                        checked={watch("isAllDay") || false}
+                        onCheckedChange={(checked) => setValue("isAllDay", checked)}
+                      />
+                      <Label htmlFor="isAllDay" className="cursor-pointer">
+                        全天
+                      </Label>
+                    </div>
+                  </div>
                   {errors.date && (
                     <p className="text-sm text-destructive">{errors.date.message}</p>
                   )}
@@ -382,7 +405,7 @@ function EventFormContent({
               </div>
             )}
 
-            {watch("datePrecision") === "exact" && (
+            {watch("datePrecision") === "exact" && !watch("isAllDay") && (
               <>
                 <div className="space-y-2">
                   <Label htmlFor="startHour">
@@ -597,6 +620,7 @@ export function EventForm({
       content: "",
       datePrecision: "exact",
       date: "",
+      isAllDay: false,
       startHour: "",
       endHour: "",
       approximateMonth: "",
@@ -643,6 +667,12 @@ export function EventForm({
             : Array.isArray(initialValues.eventType) ? initialValues.eventType[0] : initialValues.eventType)
         : undefined
 
+      // 检测是否为全天活动（通过时间判断）
+      let isAllDay = (initialValues as any).isAllDay || false
+      if (initialValues.startHour === "00:00" && initialValues.endHour === "23:59") {
+        isAllDay = true
+      }
+
       // 使用 reset 而不是 setValue，确保表单状态正确更新
       reset({
         id: initialValues.id,
@@ -650,6 +680,7 @@ export function EventForm({
         content: initialValues.content || "",
         datePrecision: (initialValues as any).datePrecision || "exact",
         date: initialValues.date || "",
+        isAllDay: isAllDay,
         startHour: initialValues.startHour || "",
         endHour: initialValues.endHour || "",
         approximateMonth: (initialValues as any).approximateMonth || "",
@@ -880,14 +911,20 @@ export function EventForm({
       let endTime: string
 
       if (data.datePrecision === "exact") {
-        // 精确日期：使用具体日期和时间
-        startTime = new Date(`${data.date}T${data.startHour}:00`).toISOString()
-        endTime = new Date(`${data.date}T${data.endHour}:00`).toISOString()
+        if (data.isAllDay) {
+          // 全天活动：00:00 到 23:59
+          startTime = new Date(`${data.date}T00:00:00`).toISOString()
+          endTime = new Date(`${data.date}T23:59:59`).toISOString()
+        } else {
+          // 精确日期：使用具体日期和时间
+          startTime = new Date(`${data.date}T${data.startHour}:00`).toISOString()
+          endTime = new Date(`${data.date}T${data.endHour}:00`).toISOString()
+        }
       } else {
-        // 待定日期：使用月份第一天的全天时间
+        // 待定日期：使用月份第15天的全天时间
         const [year, month] = data.approximateMonth!.split("-")
-        startTime = new Date(parseInt(year), parseInt(month) - 1, 1, 0, 0, 0).toISOString()
-        endTime = new Date(parseInt(year), parseInt(month) - 1, 1, 23, 59, 59).toISOString()
+        startTime = new Date(parseInt(year), parseInt(month) - 1, 15, 0, 0, 0).toISOString()
+        endTime = new Date(parseInt(year), parseInt(month) - 1, 15, 23, 59, 59).toISOString()
       }
 
       const requestBody = {
