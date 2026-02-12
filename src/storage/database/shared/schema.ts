@@ -30,7 +30,7 @@ export const eventTypeEnum = pgEnum("event_type", [
   "student_activities",     // 学生活动
   "industry_academia",      // 产学研合作
   "administration",         // 行政管理
-  "important_deadlines",    // 重要截止
+  "important_deadlines",    // 重要节点
 ])
 
 // 用户表 - 存储 DingTalk 用户信息
@@ -63,6 +63,7 @@ export const events = pgTable("events", {
   recurrenceEndDate: timestamp("recurrence_end_date", { withTimezone: true }),
   datePrecision: datePrecisionEnum("date_precision").notNull().default("exact"), // 日期精确度
   approximateMonth: varchar("approximate_month", { length: 7 }), // YYYY-MM 格式，用于存储月份待定的事件
+  requiredAttendees: text("required_attendees"), // 必须到场的人（JSON数组：[{userid, name}]）
   creatorId: integer("creator_id").references(() => users.id), // 创建者用户 ID（外键关联 users 表）
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
@@ -159,6 +160,28 @@ export function stringToEventTypes(str: string | null): EventType[] {
   return str.split(",").filter(s => s.trim()) as EventType[]
 }
 
+// Required Attendees 类型定义
+export type RequiredAttendee = {
+  userid: string
+  name: string
+}
+
+// 将 Required Attendees 数组转换为 JSON 字符串
+export function requiredAttendeesToString(attendees: RequiredAttendee[]): string {
+  return JSON.stringify(attendees)
+}
+
+// 将 JSON 字符串转换为 Required Attendees 数组
+export function stringToRequiredAttendees(str: string | null): RequiredAttendee[] {
+  if (!str) return []
+  try {
+    const parsed = JSON.parse(str)
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
 // User schemas and types
 export const insertUserSchema = createCoercedInsertSchema(users)
 export const selectUserSchema = createCoercedSelectSchema(users)
@@ -214,7 +237,7 @@ export const EVENT_TYPE_COLORS = {
     text: "text-red-700 dark:text-red-300",
     border: "border-red-200 dark:border-red-800",
     calendarBg: "#ef4444", // 红色
-    label: "重要截止",
+    label: "重要节点",
     description: "项目截止、报名截止、材料提交、重要节点提醒等",
   },
 }

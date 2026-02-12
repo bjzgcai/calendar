@@ -62,6 +62,7 @@ export async function PUT(
       recurrenceEndDate: body.recurrenceEndDate ? new Date(body.recurrenceEndDate) : null,
       datePrecision: body.datePrecision || undefined,
       approximateMonth: body.approximateMonth || null,
+      requiredAttendees: body.requiredAttendees !== undefined ? body.requiredAttendees : undefined,
     });
 
     if (!updatedEvent) {

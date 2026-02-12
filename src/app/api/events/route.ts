@@ -74,6 +74,7 @@ export async function GET(request: NextRequest) {
           recurrenceRule: event.recurrenceRule,
           datePrecision: (event as any).datePrecision || "exact",
           approximateMonth: (event as any).approximateMonth || null,
+          requiredAttendees: (event as any).requiredAttendees || null,
         },
       }
     });
@@ -122,6 +123,7 @@ export async function POST(request: NextRequest) {
       recurrenceEndDate: body.recurrenceEndDate ? new Date(body.recurrenceEndDate) : null,
       datePrecision: body.datePrecision || "exact",
       approximateMonth: body.approximateMonth || null,
+      requiredAttendees: body.requiredAttendees || null,
       creatorId: creatorId,
     });
 
@@ -180,6 +182,7 @@ export async function POST(request: NextRequest) {
           recurrenceEndDate: body.recurrenceEndDate ? new Date(body.recurrenceEndDate) : null,
           datePrecision: body.datePrecision || "exact",
           approximateMonth: body.approximateMonth || null,
+          requiredAttendees: body.requiredAttendees || null,
           creatorId: creatorId,
         });
 

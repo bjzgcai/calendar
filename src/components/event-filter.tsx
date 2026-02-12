@@ -1,16 +1,21 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Filter, X, Search, Tag } from "lucide-react"
+import { Filter, X, Search, Tag, Info } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { SearchableSelect } from "@/components/ui/searchable-select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { ORGANIZER_OPTIONS, EVENT_TYPE_COLORS, EventType } from "@/storage/database"
 import { useMediaQuery } from "@/hooks/use-media-query"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 interface TagWithCount {
   name: string
@@ -71,6 +76,24 @@ export function EventFilter({ onEventTypeChange, onOrganizerChange, onTagsChange
     const arrayValue = Array.isArray(organizer) ? organizer : (organizer ? [organizer] : undefined)
     setSelectedOrganizer(arrayValue)
     onOrganizerChange(arrayValue)
+  }
+
+  const handleEventTypeCheckboxChange = (eventType: string, checked: boolean) => {
+    const newTypes = checked
+      ? [...(selectedEventType || []), eventType]
+      : (selectedEventType || []).filter(t => t !== eventType)
+    const finalValue = newTypes.length > 0 ? newTypes : undefined
+    setSelectedEventType(finalValue)
+    onEventTypeChange(finalValue)
+  }
+
+  const handleOrganizerCheckboxChange = (organizer: string, checked: boolean) => {
+    const newOrganizers = checked
+      ? [...(selectedOrganizer || []), organizer]
+      : (selectedOrganizer || []).filter(o => o !== organizer)
+    const finalValue = newOrganizers.length > 0 ? newOrganizers : undefined
+    setSelectedOrganizer(finalValue)
+    onOrganizerChange(finalValue)
   }
 
   const handleAddTag = (tag: string) => {
@@ -180,53 +203,83 @@ export function EventFilter({ onEventTypeChange, onOrganizerChange, onTagsChange
             </Label>
           </div>
 
-          <SearchableSelect
-            label="活动类型"
-            placeholder="全部类型"
-            options={eventTypeOptions.map(opt => opt.label)}
-            value={selectedEventType
-              ?.map(type => EVENT_TYPE_COLORS[type as EventType]?.label)
-              .filter((label): label is string => typeof label === 'string')}
-            onChange={(labels) => {
-              const arrayLabels = Array.isArray(labels) ? labels : (labels ? [labels] : [])
-              const eventTypes = arrayLabels.map(label => {
-                const opt = eventTypeOptions.find(o => o.label === label)
-                return opt?.value
-              }).filter((v): v is string => v !== undefined)
-              handleEventTypeChange(eventTypes.length > 0 ? eventTypes : undefined)
-            }}
-            allLabel="全部类型"
-            multiple={true}
-            tooltipContent={
-              <div className="space-y-2.5 py-1">
-                <div className="font-semibold text-xs mb-2">活动类型说明</div>
-                {Object.entries(EVENT_TYPE_COLORS).map(([key, config]) => (
-                  <div key={key} className="flex items-start gap-2 text-xs">
-                    <div
-                      className="w-3 h-3 rounded-sm mt-0.5 flex-shrink-0"
-                      style={{ backgroundColor: config.calendarBg }}
-                    />
-                    <div>
-                      <div className="font-medium">{config.label}</div>
-                      <div className="text-[10px] text-muted-foreground mt-0.5 leading-tight">
-                        {config.description}
-                      </div>
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Label className="font-medium">活动类型</Label>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="max-w-xs">
+                    <div className="space-y-2.5 py-1">
+                      <div className="font-semibold text-xs mb-2">活动类型说明</div>
+                      {Object.entries(EVENT_TYPE_COLORS).map(([key, config]) => (
+                        <div key={key} className="flex items-start gap-2 text-xs">
+                          <div
+                            className="w-3 h-3 rounded-sm mt-0.5 flex-shrink-0"
+                            style={{ backgroundColor: config.calendarBg }}
+                          />
+                          <div>
+                            <div className="font-medium">{config.label}</div>
+                            <div className="text-[10px] text-muted-foreground mt-0.5 leading-tight">
+                              {config.description}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  </div>
-                ))}
-              </div>
-            }
-          />
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+            <div className="space-y-2 pl-2">
+              {eventTypeOptions.map((option) => (
+                <div key={option.value} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`eventType-mobile-${option.value}`}
+                    checked={selectedEventType?.includes(option.value) || false}
+                    onCheckedChange={(checked) =>
+                      handleEventTypeCheckboxChange(option.value, checked === true)
+                    }
+                  />
+                  <Label
+                    htmlFor={`eventType-mobile-${option.value}`}
+                    className="text-sm font-normal leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex items-center gap-2"
+                  >
+                    <div
+                      className="w-3 h-3 rounded-sm flex-shrink-0"
+                      style={{ backgroundColor: EVENT_TYPE_COLORS[option.value as EventType]?.calendarBg }}
+                    />
+                    {option.label}
+                  </Label>
+                </div>
+              ))}
+            </div>
+          </div>
 
-          <SearchableSelect
-            label="发起者"
-            placeholder="全部发起者"
-            options={organizers}
-            value={selectedOrganizer}
-            onChange={handleOrganizerChange}
-            allLabel="全部发起者"
-            multiple={true}
-          />
+          <div className="space-y-2">
+            <Label className="font-medium">发起者</Label>
+            <div className="space-y-2 pl-2">
+              {organizers.map((organizer) => (
+                <div key={organizer} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`organizer-mobile-${organizer}`}
+                    checked={selectedOrganizer?.includes(organizer) || false}
+                    onCheckedChange={(checked) =>
+                      handleOrganizerCheckboxChange(organizer, checked === true)
+                    }
+                  />
+                  <Label
+                    htmlFor={`organizer-mobile-${organizer}`}
+                    className="text-sm font-normal leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                  >
+                    {organizer}
+                  </Label>
+                </div>
+              ))}
+            </div>
+          </div>
 
           <div className="space-y-2">
             <div className="flex items-center gap-2">
@@ -364,53 +417,83 @@ export function EventFilter({ onEventTypeChange, onOrganizerChange, onTagsChange
             </Label>
           </div>
 
-          <SearchableSelect
-            label="活动类型"
-            placeholder="全部类型"
-            options={eventTypeOptions.map(opt => opt.label)}
-            value={selectedEventType
-              ?.map(type => EVENT_TYPE_COLORS[type as EventType]?.label)
-              .filter((label): label is string => typeof label === 'string')}
-            onChange={(labels) => {
-              const arrayLabels = Array.isArray(labels) ? labels : (labels ? [labels] : [])
-              const eventTypes = arrayLabels.map(label => {
-                const opt = eventTypeOptions.find(o => o.label === label)
-                return opt?.value
-              }).filter((v): v is string => v !== undefined)
-              handleEventTypeChange(eventTypes.length > 0 ? eventTypes : undefined)
-            }}
-            allLabel="全部类型"
-            multiple={true}
-            tooltipContent={
-              <div className="space-y-2.5 py-1">
-                <div className="font-semibold text-xs mb-2">活动类型说明</div>
-                {Object.entries(EVENT_TYPE_COLORS).map(([key, config]) => (
-                  <div key={key} className="flex items-start gap-2 text-xs">
-                    <div
-                      className="w-3 h-3 rounded-sm mt-0.5 flex-shrink-0"
-                      style={{ backgroundColor: config.calendarBg }}
-                    />
-                    <div>
-                      <div className="font-medium">{config.label}</div>
-                      <div className="text-[10px] text-muted-foreground mt-0.5 leading-tight">
-                        {config.description}
-                      </div>
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Label className="font-medium">活动类型</Label>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="max-w-xs">
+                    <div className="space-y-2.5 py-1">
+                      <div className="font-semibold text-xs mb-2">活动类型说明</div>
+                      {Object.entries(EVENT_TYPE_COLORS).map(([key, config]) => (
+                        <div key={key} className="flex items-start gap-2 text-xs">
+                          <div
+                            className="w-3 h-3 rounded-sm mt-0.5 flex-shrink-0"
+                            style={{ backgroundColor: config.calendarBg }}
+                          />
+                          <div>
+                            <div className="font-medium">{config.label}</div>
+                            <div className="text-[10px] text-muted-foreground mt-0.5 leading-tight">
+                              {config.description}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  </div>
-                ))}
-              </div>
-            }
-          />
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+            <div className="space-y-2 pl-2">
+              {eventTypeOptions.map((option) => (
+                <div key={option.value} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`eventType-desktop-${option.value}`}
+                    checked={selectedEventType?.includes(option.value) || false}
+                    onCheckedChange={(checked) =>
+                      handleEventTypeCheckboxChange(option.value, checked === true)
+                    }
+                  />
+                  <Label
+                    htmlFor={`eventType-desktop-${option.value}`}
+                    className="text-sm font-normal leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex items-center gap-2"
+                  >
+                    <div
+                      className="w-3 h-3 rounded-sm flex-shrink-0"
+                      style={{ backgroundColor: EVENT_TYPE_COLORS[option.value as EventType]?.calendarBg }}
+                    />
+                    {option.label}
+                  </Label>
+                </div>
+              ))}
+            </div>
+          </div>
 
-          <SearchableSelect
-            label="发起者"
-            placeholder="全部发起者"
-            options={organizers}
-            value={selectedOrganizer}
-            onChange={handleOrganizerChange}
-            allLabel="全部发起者"
-            multiple={true}
-          />
+          <div className="space-y-2">
+            <Label className="font-medium">发起者</Label>
+            <div className="space-y-2 pl-2">
+              {organizers.map((organizer) => (
+                <div key={organizer} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`organizer-desktop-${organizer}`}
+                    checked={selectedOrganizer?.includes(organizer) || false}
+                    onCheckedChange={(checked) =>
+                      handleOrganizerCheckboxChange(organizer, checked === true)
+                    }
+                  />
+                  <Label
+                    htmlFor={`organizer-desktop-${organizer}`}
+                    className="text-sm font-normal leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                  >
+                    {organizer}
+                  </Label>
+                </div>
+              ))}
+            </div>
+          </div>
 
           <div className="space-y-2">
             <div className="flex items-center gap-2">

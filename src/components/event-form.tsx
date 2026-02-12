@@ -12,10 +12,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { SearchableSelect } from "@/components/ui/searchable-select"
+import { UserSelector } from "@/components/user-selector"
 import { Calendar, Upload, X, Plus, FlaskConical, BookOpen, PartyPopper, Handshake, FileText, Clock } from "lucide-react"
 import { Spinner } from "@/components/ui/spinner"
 import { Switch } from "@/components/ui/switch"
 import { ORGANIZER_OPTIONS } from "@/storage/database"
+import type { RequiredAttendee } from "@/storage/database/shared/schema"
 
 const eventSchema = z.object({
   id: z.number().optional(),
@@ -42,6 +44,10 @@ const eventSchema = z.object({
   imageUrl: z.string().optional(),
   recurrenceRule: z.enum(["none", "daily", "weekly", "monthly"]),
   recurrenceEndDate: z.string().optional(),
+  requiredAttendees: z.array(z.object({
+    userid: z.string(),
+    name: z.string(),
+  })).optional(),
 }).superRefine((data, ctx) => {
   // 精确日期时，date 必填
   if (data.datePrecision === "exact") {
@@ -184,6 +190,8 @@ function EventFormContent({
   setError,
   clearErrors,
   isEditMode,
+  requiredAttendees,
+  setRequiredAttendees,
 }: any) {
   const recurrenceRule = watch("recurrenceRule")
 
@@ -255,6 +263,18 @@ function EventFormContent({
               {errors.title && (
                 <p className="text-sm text-destructive">{errors.title.message}</p>
               )}
+            </div>
+
+            <div className="space-y-2">
+              <UserSelector
+                label="必须到场的人（可选）"
+                value={requiredAttendees}
+                onChange={(users) => {
+                  setRequiredAttendees(users)
+                  setValue("requiredAttendees", users)
+                }}
+                placeholder="搜索钉钉用户姓名"
+              />
             </div>
 
             <div className="space-y-2">
@@ -597,6 +617,7 @@ export function EventForm({
   const [tagList, setTagList] = useState<string[]>([])
   const [selectedOrganizer, setSelectedOrganizer] = useState<string[] | undefined>(undefined)
   const [selectedEventType, setSelectedEventType] = useState<string | undefined>(undefined)
+  const [requiredAttendees, setRequiredAttendees] = useState<RequiredAttendee[]>([])
 
   // 如果提供了 controlledOpen，使用它；否则使用内部状态
   const open = controlledOpen !== undefined ? controlledOpen : internalOpen
@@ -629,6 +650,7 @@ export function EventForm({
       link: "",
       recurrenceRule: "none",
       recurrenceEndDate: "",
+      requiredAttendees: [],
     },
   })
 
@@ -646,6 +668,7 @@ export function EventForm({
       setCurrentTag("")
       setSelectedOrganizer(undefined)
       setSelectedEventType(undefined)
+      setRequiredAttendees([])
     }
   }, [open, reset])
 
@@ -671,6 +694,21 @@ export function EventForm({
         isAllDay = true
       }
 
+      // 处理必须到场的人
+      let attendeesArray: RequiredAttendee[] = []
+      if ((initialValues as any).requiredAttendees) {
+        const rawAttendees = (initialValues as any).requiredAttendees
+        if (typeof rawAttendees === 'string') {
+          try {
+            attendeesArray = JSON.parse(rawAttendees)
+          } catch {
+            attendeesArray = []
+          }
+        } else if (Array.isArray(rawAttendees)) {
+          attendeesArray = rawAttendees
+        }
+      }
+
       // 使用 reset 而不是 setValue，确保表单状态正确更新
       reset({
         id: initialValues.id,
@@ -689,6 +727,7 @@ export function EventForm({
         link: initialValues.link || "",
         recurrenceRule: initialValues.recurrenceRule || "none",
         recurrenceEndDate: initialValues.recurrenceEndDate || "",
+        requiredAttendees: attendeesArray,
       })
 
       // 更新图片 URL
@@ -705,6 +744,7 @@ export function EventForm({
       // 更新组织者和活动类型
       setSelectedOrganizer(organizerArray.length > 0 ? organizerArray : undefined)
       setSelectedEventType(eventTypeValue)
+      setRequiredAttendees(attendeesArray)
     }
   }, [initialValues, open, reset])
 
@@ -884,6 +924,7 @@ export function EventForm({
     setCurrentTag("")
     setSelectedOrganizer(undefined)
     setSelectedEventType(undefined)
+    setRequiredAttendees([])
   }
 
   const onSubmit = async (data: EventFormData) => {
@@ -936,6 +977,9 @@ export function EventForm({
         recurrenceEndDate: data.recurrenceEndDate ? new Date(data.recurrenceEndDate) : null,
         organizer: data.organizer && data.organizer.length > 0 ? data.organizer.join(',') : null, // Convert array to comma-separated string or null
         eventType: data.eventType || null, // Single value, no need to join
+        requiredAttendees: data.requiredAttendees && data.requiredAttendees.length > 0
+          ? JSON.stringify(data.requiredAttendees)
+          : null,
       }
 
       console.log("请求URL:", url)
@@ -969,6 +1013,8 @@ export function EventForm({
       setTagList([])
       setCurrentTag("")
       setSelectedOrganizer(undefined)
+      setSelectedEventType(undefined)
+      setRequiredAttendees([])
 
       console.log("调用 onSuccess 回调...")
       onSuccess?.()
@@ -1014,6 +1060,8 @@ export function EventForm({
             handleTagKeyDown={handleTagKeyDown}
             handleDialogClose={handleDialogClose}
             isEditMode={!!initialValues?.id}
+            requiredAttendees={requiredAttendees}
+            setRequiredAttendees={setRequiredAttendees}
           />
         </DialogContent>
       </Dialog>
@@ -1052,6 +1100,8 @@ export function EventForm({
           handleTagKeyDown={handleTagKeyDown}
           handleDialogClose={handleDialogClose}
           isEditMode={!!initialValues?.id}
+          requiredAttendees={requiredAttendees}
+          setRequiredAttendees={setRequiredAttendees}
         />
       </DialogContent>
     </Dialog>

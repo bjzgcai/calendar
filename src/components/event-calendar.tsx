@@ -144,6 +144,7 @@ export function EventCalendar({ onEventClick, onTimeSlotSelect, onViewChange, cu
         recurrenceRule: event.extendedProps.recurrenceRule,
         datePrecision: event.extendedProps.datePrecision,
         approximateMonth: event.extendedProps.approximateMonth,
+        requiredAttendees: event.extendedProps.requiredAttendees,
       },
     }
     onEventClick?.(calendarEvent)
@@ -219,6 +220,19 @@ export function EventCalendar({ onEventClick, onTimeSlotSelect, onViewChange, cu
 
     const imageUrl = event.extendedProps?.imageUrl
     const content = event.extendedProps?.content || ""
+    const requiredAttendeesStr = event.extendedProps?.requiredAttendees
+
+    // 解析必须到场的人
+    let requiredAttendees: Array<{userid: string, name: string}> = []
+    if (requiredAttendeesStr) {
+      try {
+        requiredAttendees = typeof requiredAttendeesStr === 'string'
+          ? JSON.parse(requiredAttendeesStr)
+          : requiredAttendeesStr
+      } catch {
+        // 忽略解析错误
+      }
+    }
 
     // 为不确定日期的事件添加特殊标识
     const uncertainBadge =
@@ -240,6 +254,16 @@ export function EventCalendar({ onEventClick, onTimeSlotSelect, onViewChange, cu
           content
             ? `<div class="event-tooltip-content">
                 ${content}
+              </div>`
+            : ""
+        }
+        ${
+          requiredAttendees.length > 0
+            ? `<div class="event-tooltip-attendees">
+                <strong>👥 必须到场：</strong>
+                <div style="margin-top: 4px;">
+                  ${requiredAttendees.map(a => `<span class="attendee-badge">${a.name}</span>`).join(' ')}
+                </div>
               </div>`
             : ""
         }

@@ -16,5 +16,6 @@ export interface CalendarEvent {
     recurrenceEndDate?: string
     datePrecision?: "exact" | "month" // 日期精确度
     approximateMonth?: string // 近似月份（YYYY-MM）
+    requiredAttendees?: string // 必须到场的人（JSON字符串）
   }
 }

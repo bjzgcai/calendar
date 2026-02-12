@@ -130,6 +130,7 @@ export function CalendarPageContent() {
       recurrenceEndDate: event.extendedProps.recurrenceEndDate
         ? formatDate(new Date(event.extendedProps.recurrenceEndDate))
         : "",
+      requiredAttendees: event.extendedProps.requiredAttendees,
     }
 
     console.log("表单初始值:", initialValues)

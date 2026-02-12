@@ -169,3 +169,163 @@ export async function getUserDetailByUserId(corpAccessToken: string, userId: str
 
   return response.json();
 }
+
+/**
+ * 获取部门用户列表（简化版）
+ */
+export async function getDepartmentUserList(corpAccessToken: string, deptId: number = 1, cursor: number = 0, size: number = 100) {
+  const params = new URLSearchParams({
+    access_token: corpAccessToken,
+  });
+
+  const response = await fetch(`${DINGTALK_OAPI_BASE}/topapi/user/listsimple?${params.toString()}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      dept_id: deptId,
+      cursor: cursor,
+      size: size,
+      language: "zh_CN",
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Failed to get department user list: ${error}`);
+  }
+
+  const data = await response.json();
+
+  if (data.errcode !== 0) {
+    throw new Error(`DingTalk API error: ${data.errmsg} (code: ${data.errcode})`);
+  }
+
+  return data.result;
+}
+
+/**
+ * 获取部门详细用户列表
+ */
+export async function getDepartmentUserDetailList(corpAccessToken: string, deptId: number = 1, cursor: number = 0, size: number = 100) {
+  const params = new URLSearchParams({
+    access_token: corpAccessToken,
+  });
+
+  const response = await fetch(`${DINGTALK_OAPI_BASE}/topapi/v2/user/list?${params.toString()}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      dept_id: deptId,
+      cursor: cursor,
+      size: size,
+      language: "zh_CN",
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Failed to get department user detail list: ${error}`);
+  }
+
+  const data = await response.json();
+
+  if (data.errcode !== 0) {
+    throw new Error(`DingTalk API error: ${data.errmsg} (code: ${data.errcode})`);
+  }
+
+  return data.result;
+}
+
+/**
+ * 获取所有部门列表
+ */
+export async function getDepartmentList(corpAccessToken: string, deptId?: number) {
+  const params = new URLSearchParams({
+    access_token: corpAccessToken,
+  });
+
+  const body: any = {
+    language: "zh_CN",
+  };
+
+  if (deptId !== undefined) {
+    body.dept_id = deptId;
+  }
+
+  const response = await fetch(`${DINGTALK_OAPI_BASE}/topapi/v2/department/listsub?${params.toString()}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Failed to get department list: ${error}`);
+  }
+
+  const data = await response.json();
+
+  if (data.errcode !== 0) {
+    throw new Error(`DingTalk API error: ${data.errmsg} (code: ${data.errcode})`);
+  }
+
+  return data.result;
+}
+
+/**
+ * 获取整个组织的所有用户（递归获取所有部门）
+ */
+export async function getAllUsers(corpAccessToken: string, detailed: boolean = false) {
+  const allUsers: any[] = [];
+  const processedDepts = new Set<number>();
+  const deptsToProcess = [1]; // 从根部门开始
+
+  while (deptsToProcess.length > 0) {
+    const currentDeptId = deptsToProcess.pop()!;
+
+    if (processedDepts.has(currentDeptId)) {
+      continue;
+    }
+    processedDepts.add(currentDeptId);
+
+    // 获取当前部门的用户
+    let cursor = 0;
+    let hasMore = true;
+
+    while (hasMore) {
+      const result = detailed
+        ? await getDepartmentUserDetailList(corpAccessToken, currentDeptId, cursor, 100)
+        : await getDepartmentUserList(corpAccessToken, currentDeptId, cursor, 100);
+
+      if (result.list && result.list.length > 0) {
+        allUsers.push(...result.list);
+      }
+
+      hasMore = result.has_more;
+      cursor = result.next_cursor;
+    }
+
+    // 获取子部门
+    try {
+      const subDepts = await getDepartmentList(corpAccessToken, currentDeptId);
+      if (subDepts && subDepts.length > 0) {
+        deptsToProcess.push(...subDepts.map((dept: any) => dept.dept_id));
+      }
+    } catch (error) {
+      console.error(`Error getting sub departments for dept ${currentDeptId}:`, error);
+    }
+  }
+
+  // 去重（根据 userid）
+  const uniqueUsers = Array.from(
+    new Map(allUsers.map(user => [user.userid, user])).values()
+  );
+
+  return uniqueUsers;
+}

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Calendar, Clock, MapPin, User, Tag, ExternalLink, X, Trash2, AlertTriangle, Edit, Layers } from "lucide-react"
+import { Calendar, Clock, MapPin, User, Tag, ExternalLink, X, Trash2, AlertTriangle, Edit, Layers, Users } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
@@ -82,6 +82,21 @@ export function EventDetail({ event, open, onOpenChange, onEventDeleted, onEvent
   // Check if event type exists
   const hasEventType = eventTypes.length > 0
 
+  // Parse required attendees
+  const parseRequiredAttendees = (requiredAttendeesStr?: string): Array<{userid: string, name: string}> => {
+    if (!requiredAttendeesStr) return []
+    try {
+      const parsed = typeof requiredAttendeesStr === 'string'
+        ? JSON.parse(requiredAttendeesStr)
+        : requiredAttendeesStr
+      return Array.isArray(parsed) ? parsed : []
+    } catch {
+      return []
+    }
+  }
+
+  const requiredAttendees = parseRequiredAttendees(event.extendedProps.requiredAttendees)
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto [&>button]:h-8 [&>button]:w-8 [&>button>svg]:size-5">
@@ -151,6 +166,22 @@ export function EventDetail({ event, open, onOpenChange, onEventDeleted, onEvent
                     {organizers.map((org, index) => (
                       <Badge key={index} variant="outline">
                         {org}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {requiredAttendees.length > 0 && (
+              <div className="flex items-start gap-3">
+                <Users className="h-5 w-5 text-muted-foreground mt-0.5" />
+                <div className="flex-1">
+                  <p className="font-medium">必须到的人</p>
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {requiredAttendees.map((attendee, index) => (
+                      <Badge key={index} variant="secondary" className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
+                        {attendee.name}
                       </Badge>
                     ))}
                   </div>

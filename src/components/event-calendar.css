@@ -215,6 +215,35 @@
   text-overflow: ellipsis;
 }
 
+.event-tooltip-attendees {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 12px;
+  margin-top: 8px;
+  margin-bottom: 8px;
+  padding: 8px;
+  background-color: rgba(59, 130, 246, 0.15);
+  border-radius: 4px;
+  border-left: 3px solid #3b82f6;
+}
+
+.event-tooltip-attendees strong {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 12px;
+}
+
+.attendee-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  margin: 2px 4px 2px 0;
+  font-size: 11px;
+  font-weight: 500;
+  color: #fff;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  border-radius: 12px;
+  white-space: nowrap;
+}
+
 .event-tooltip-image {
   width: 100%;
   height: auto;
