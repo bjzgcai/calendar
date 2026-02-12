@@ -62,7 +62,7 @@ export function UserSelector({ label, value, onChange, placeholder = "搜索钉�
 
         // 在客户端进行搜索过滤
         const searchLower = query.toLowerCase().trim()
-        const filteredUsers = allUsers.filter((user) => {
+        const filteredUsers = (allUsers || []).filter((user) => {
           const name = user.name?.toLowerCase() || ""
           const userid = user.userid?.toLowerCase() || ""
           return name.includes(searchLower) || userid.includes(searchLower)
