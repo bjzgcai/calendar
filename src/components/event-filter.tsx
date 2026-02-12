@@ -273,8 +273,6 @@ export function EventFilter({ onEventTypeChange, onOrganizerChange, onTagsChange
           </div>
         </div>
       </CardContent>
-      <a href="#" className='friend-links cursor-pointer text-blue-600 hover:text-blue-800 block text-center py-2' onClick={(e) => e.preventDefault()}> 友情连接</a>
-            <a href="#" className='friend-links cursor-pointer text-blue-600 hover:text-blue-800 block text-center py-2' onClick={(e) => e.preventDefault()}> 友情连接2</a>
     </Card>
   )
 }
