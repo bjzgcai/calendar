@@ -921,10 +921,10 @@ export function EventForm({
           endTime = new Date(`${data.date}T${data.endHour}:00`).toISOString()
         }
       } else {
-        // 待定日期：使用月份第15天的全天时间
+        // 待定日期：使用月份第15天的全天时间（使用 UTC 避免时区偏移）
         const [year, month] = data.approximateMonth!.split("-")
-        startTime = new Date(parseInt(year), parseInt(month) - 1, 15, 0, 0, 0).toISOString()
-        endTime = new Date(parseInt(year), parseInt(month) - 1, 15, 23, 59, 59).toISOString()
+        startTime = new Date(Date.UTC(parseInt(year), parseInt(month) - 1, 15, 0, 0, 0)).toISOString()
+        endTime = new Date(Date.UTC(parseInt(year), parseInt(month) - 1, 15, 23, 59, 59)).toISOString()
       }
 
       const requestBody = {

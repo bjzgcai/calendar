@@ -33,8 +33,9 @@ export function getDisplayDateForUncertainEvent(approximateMonth: string): {
   end: Date
 } {
   const [year, month] = approximateMonth.split("-").map(Number)
-  const start = new Date(year, month - 1, 15, 0, 0, 0) // 15号 00:00
-  const end = new Date(year, month - 1, 15, 23, 59, 59) // 15号 23:59
+  // 使用 UTC 时间避免时区偏移导致月份错位
+  const start = new Date(Date.UTC(year, month - 1, 15, 0, 0, 0)) // 15号 00:00 UTC
+  const end = new Date(Date.UTC(year, month - 1, 15, 23, 59, 59)) // 15号 23:59 UTC
 
   return { start, end }
 }

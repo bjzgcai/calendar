@@ -77,12 +77,10 @@ export function EventDetail({ event, open, onOpenChange, onEventDeleted, onEvent
 
   // Parse comma-separated organizers and event types
   const organizers = event.extendedProps.organizer ? event.extendedProps.organizer.split(',').map(o => o.trim()) : []
-  const eventTypes = event.extendedProps.eventType ? event.extendedProps.eventType.split(',').map(t => t.trim()) : []
+  const eventTypes = event.extendedProps.eventType ? event.extendedProps.eventType.split(',').map(t => t.trim()).filter(t => t) : []
 
-  // Get first event type for the main badge (fallback behavior)
-  const primaryEventType = eventTypes[0] || event.extendedProps.eventType
-  const eventTypeColors = getEventTypeColor(primaryEventType as any)
-  const eventTypeLabel = eventTypeColors.label
+  // Check if event type exists
+  const hasEventType = eventTypes.length > 0
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -125,28 +123,24 @@ export function EventDetail({ event, open, onOpenChange, onEventDeleted, onEvent
           <Separator />
 
           <div className="space-y-3">
-            <div className="flex items-start gap-3">
-              <Layers className="h-5 w-5 text-muted-foreground mt-0.5" />
-              <div className="flex-1">
-                <p className="font-medium">活动类型</p>
-                <div className="flex flex-wrap gap-2 mt-1">
-                  {eventTypes.length > 0 ? (
-                    eventTypes.map((type, index) => {
+            {hasEventType && (
+              <div className="flex items-start gap-3">
+                <Layers className="h-5 w-5 text-muted-foreground mt-0.5" />
+                <div className="flex-1">
+                  <p className="font-medium">活动类型</p>
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {eventTypes.map((type, index) => {
                       const colors = getEventTypeColor(type as any)
                       return (
                         <Badge key={index} className={colors.bg + " " + colors.text}>
                           {colors.label}
                         </Badge>
                       )
-                    })
-                  ) : (
-                    <Badge className={eventTypeColors.bg + " " + eventTypeColors.text}>
-                      {eventTypeLabel}
-                    </Badge>
-                  )}
+                    })}
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
             <div className="flex items-start gap-3">
               <User className="h-5 w-5 text-muted-foreground mt-0.5" />
