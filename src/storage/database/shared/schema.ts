@@ -49,13 +49,13 @@ export const users = pgTable("users", {
 export const events = pgTable("events", {
   id: serial("id").primaryKey().notNull(),
   title: varchar("title", { length: 255 }).notNull(),
-  content: text("content").notNull(),
+  content: text("content"),
   imageUrl: text("image_url"),
   link: text("link"),
   startTime: timestamp("start_time", { withTimezone: true }).notNull(),
   endTime: timestamp("end_time", { withTimezone: true }).notNull(),
   location: varchar("location", { length: 255 }),
-  organizer: text("organizer").notNull(), // Changed to text to store comma-separated values
+  organizer: text("organizer"), // Changed to text to store comma-separated values
   organizationType: organizationTypeEnum("organization_type"),
   eventType: text("event_type"), // Changed to text to store comma-separated values
   tags: text("tags").notNull().default(""),

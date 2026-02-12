@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { ORGANIZER_OPTIONS, EVENT_TYPE_COLORS, EventType } from "@/storage/database"
+import { useMediaQuery } from "@/hooks/use-media-query"
 
 interface TagWithCount {
   name: string
@@ -31,6 +32,8 @@ export function EventFilter({ onEventTypeChange, onOrganizerChange, onTagsChange
   const [myEvents, setMyEvents] = useState<boolean>(false)
   const [tagSearchQuery, setTagSearchQuery] = useState<string>("")
   const [showAllTags, setShowAllTags] = useState<boolean>(false)
+  const isMobile = !useMediaQuery("(min-width: 1024px)")
+  const [isOpen, setIsOpen] = useState(false)
 
   // 活动类型选项（根据 EVENT_TYPE_COLORS 生成）
   const eventTypeOptions = Object.entries(EVENT_TYPE_COLORS).map(([value, config]) => ({
@@ -112,6 +115,224 @@ export function EventFilter({ onEventTypeChange, onOrganizerChange, onTagsChange
 
   const hasFilters = (selectedEventType && selectedEventType.length > 0) || (selectedOrganizer && selectedOrganizer.length > 0) || selectedTags.length > 0 || myEvents
 
+  // 移动端：显示浮动按钮
+  if (isMobile && !isOpen) {
+    return (
+      <Button
+        onClick={() => setIsOpen(true)}
+        className="fixed top-4 right-4 z-50 shadow-lg"
+        size="sm"
+      >
+        <Filter className="h-4 w-4 mr-2" />
+        筛选条件
+        {hasFilters && (
+          <span className="ml-2 flex h-5 w-5 items-center justify-center rounded-full bg-primary-foreground text-primary text-xs font-bold">
+            {(selectedEventType?.length || 0) + (selectedOrganizer?.length || 0) + selectedTags.length + (myEvents ? 1 : 0)}
+          </span>
+        )}
+      </Button>
+    )
+  }
+
+  // 移动端：展开的筛选面板（覆盖层）
+  if (isMobile && isOpen) {
+    return (
+      <>
+        {/* 背景遮罩 */}
+        <div
+          className="fixed inset-0 bg-black/50 z-40"
+          onClick={() => setIsOpen(false)}
+        />
+
+        {/* 筛选面板 */}
+        <Card className="fixed top-0 left-0 right-0 bottom-0 z-50 rounded-none overflow-y-auto">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Filter className="h-4 w-4" />
+                <h3 className="font-medium">筛选条件</h3>
+              </div>
+              <div className="flex items-center gap-2">
+                {hasFilters && (
+                  <Button variant="ghost" size="sm" onClick={handleClear}>
+                    <X className="mr-2 h-3 w-3" />
+                    清除筛选
+                  </Button>
+                )}
+                <Button variant="ghost" size="sm" onClick={() => setIsOpen(false)}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+          <div className="flex items-center space-x-2 pt-2">
+            <Checkbox
+              id="myEvents"
+              checked={myEvents}
+              onCheckedChange={handleMyEventsChange}
+            />
+            <Label
+              htmlFor="myEvents"
+              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+            >
+              只看我创建的活动
+            </Label>
+          </div>
+
+          <SearchableSelect
+            label="活动类型"
+            placeholder="全部类型"
+            options={eventTypeOptions.map(opt => opt.label)}
+            value={selectedEventType
+              ?.map(type => EVENT_TYPE_COLORS[type as EventType]?.label)
+              .filter((label): label is string => typeof label === 'string')}
+            onChange={(labels) => {
+              const arrayLabels = Array.isArray(labels) ? labels : (labels ? [labels] : [])
+              const eventTypes = arrayLabels.map(label => {
+                const opt = eventTypeOptions.find(o => o.label === label)
+                return opt?.value
+              }).filter((v): v is string => v !== undefined)
+              handleEventTypeChange(eventTypes.length > 0 ? eventTypes : undefined)
+            }}
+            allLabel="全部类型"
+            multiple={true}
+            tooltipContent={
+              <div className="space-y-2.5 py-1">
+                <div className="font-semibold text-xs mb-2">活动类型说明</div>
+                {Object.entries(EVENT_TYPE_COLORS).map(([key, config]) => (
+                  <div key={key} className="flex items-start gap-2 text-xs">
+                    <div
+                      className="w-3 h-3 rounded-sm mt-0.5 flex-shrink-0"
+                      style={{ backgroundColor: config.calendarBg }}
+                    />
+                    <div>
+                      <div className="font-medium">{config.label}</div>
+                      <div className="text-[10px] text-muted-foreground mt-0.5 leading-tight">
+                        {config.description}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            }
+          />
+
+          <SearchableSelect
+            label="发起者"
+            placeholder="全部发起者"
+            options={organizers}
+            value={selectedOrganizer}
+            onChange={handleOrganizerChange}
+            allLabel="全部发起者"
+            multiple={true}
+          />
+
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Tag className="h-4 w-4" />
+              <Label>标签</Label>
+            </div>
+
+            {/* Selected Tags Pills */}
+            {selectedTags.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-2">
+                {selectedTags.map((tag) => (
+                  <Badge
+                    key={tag}
+                    variant="default"
+                    className="cursor-pointer hover:bg-primary/80"
+                    onClick={() => handleRemoveTag(tag)}
+                  >
+                    {tag}
+                    <X className="ml-1 h-3 w-3" />
+                  </Badge>
+                ))}
+              </div>
+            )}
+
+            {/* Tag Search Input */}
+            <div className="relative">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="搜索标签..."
+                value={tagSearchQuery}
+                onChange={(e) => setTagSearchQuery(e.target.value)}
+                className="pl-8"
+              />
+            </div>
+
+            {/* Tag Suggestions */}
+            {(tagSearchQuery || displayedTags.length > 0) && (
+              <div className="border rounded-md p-2 max-h-48 overflow-y-auto space-y-1">
+                {displayedTags.length > 0 ? (
+                  <>
+                    {displayedTags.map((tag) => (
+                      <button
+                        key={tag.name}
+                        onClick={() => handleAddTag(tag.name)}
+                        disabled={selectedTags.includes(tag.name)}
+                        className="w-full text-left px-2 py-1.5 text-sm rounded hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-between"
+                      >
+                        <span>{tag.name}</span>
+                        <span className="text-xs text-muted-foreground">({tag.count})</span>
+                      </button>
+                    ))}
+                    {!showAllTags && filteredTags.length > 5 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full"
+                        onClick={() => setShowAllTags(true)}
+                      >
+                        显示全部 {filteredTags.length} 个标签
+                      </Button>
+                    )}
+                    {showAllTags && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full"
+                        onClick={() => setShowAllTags(false)}
+                      >
+                        收起
+                      </Button>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-2">
+                    未找到匹配的标签
+                  </p>
+                )}
+              </div>
+            )}
+
+            {selectedTags.length > 0 && (
+              <p className="text-xs text-muted-foreground">
+                已选择 {selectedTags.length} 个标签（显示包含所有标签的活动）
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* 移动端底部确认按钮 */}
+        {isMobile && (
+          <div className="sticky bottom-0 left-0 right-0 p-4 bg-background border-t mt-4">
+            <Button
+              onClick={() => setIsOpen(false)}
+              className="w-full"
+            >
+              确认筛选
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+      </>
+    )
+  }
+
+  // 桌面端：普通卡片显示
   return (
     <Card>
       <CardContent className="pt-6">

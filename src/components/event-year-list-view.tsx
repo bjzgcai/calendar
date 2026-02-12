@@ -150,8 +150,18 @@ export function EventYearListView({
             const monthObj = parseISO(month + "-01")
             const eventsForMonth = groupedEvents[month]
 
+            // 检查是否为过去的月份
+            const now = new Date()
+            const currentMonth = format(now, "yyyy-MM")
+            const isPastMonth = month < currentMonth
+
             return (
-              <Card key={month} className="p-4 hover:shadow-lg transition-shadow">
+              <Card
+                key={month}
+                className={`p-4 hover:shadow-lg transition-shadow ${
+                  isPastMonth ? "bg-muted/30" : ""
+                }`}
+              >
                 {/* 月份标题 */}
                 <div className="mb-3 pb-2 border-b">
                   <h3

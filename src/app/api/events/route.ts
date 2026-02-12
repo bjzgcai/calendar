@@ -38,11 +38,27 @@ export async function GET(request: NextRequest) {
       // Get primary event type for background color (first in comma-separated list)
       const primaryEventType = event.eventType ? event.eventType.split(',')[0]?.trim() : null
 
+      // 检测是否为全天事件
+      const startDate = new Date(event.startTime);
+      const endDate = new Date(event.endTime);
+
+      // 判断是否为全天事件：开始时间为 00:00，结束时间为 23:59 或第二天的 00:00
+      const isAllDay = (
+        startDate.getHours() === 0 &&
+        startDate.getMinutes() === 0 &&
+        startDate.getSeconds() === 0 &&
+        (
+          (endDate.getHours() === 23 && endDate.getMinutes() === 59) ||
+          (endDate.getHours() === 0 && endDate.getMinutes() === 0 && endDate.getDate() !== startDate.getDate())
+        )
+      );
+
       return {
         id: event.id.toString(),
         title: event.title,
         start: event.startTime.toISOString(),
         end: event.endTime.toISOString(),
+        allDay: isAllDay,
         backgroundColor: getEventTypeColor(primaryEventType as any).calendarBg,
         datePrecision: (event as any).datePrecision || "exact",
         approximateMonth: (event as any).approximateMonth || null,
@@ -88,18 +104,18 @@ export async function POST(request: NextRequest) {
 
     // 创建主活动（根据发起者自动判断机构类型）
     // organizer is now a comma-separated string, get the primary organizer for type
-    const primaryOrganizer = body.organizer.split(',')[0]?.trim() || body.organizer;
+    const primaryOrganizer = body.organizer ? body.organizer.split(',')[0]?.trim() : null;
 
     const newEvent = await eventManager.createEvent({
       title: body.title,
-      content: body.content,
+      content: body.content || null,
       imageUrl: body.imageUrl || null,
       link: body.link || null,
       startTime,
       endTime,
       location: body.location || null,
-      organizer: body.organizer, // Keep as comma-separated string
-      organizationType: getOrganizationType(primaryOrganizer),
+      organizer: body.organizer || null, // Keep as comma-separated string or null
+      organizationType: primaryOrganizer ? getOrganizationType(primaryOrganizer) : 'other',
       eventType: body.eventType || null,
       tags: body.tags || "",
       recurrenceRule: body.recurrenceRule || "none",
@@ -150,14 +166,14 @@ export async function POST(request: NextRequest) {
 
         const repeatedEvent = await eventManager.createEvent({
           title: body.title,
-          content: body.content,
+          content: body.content || null,
           imageUrl: body.imageUrl || null,
           link: body.link || null,
           startTime: nextStartTime,
           endTime: nextEndTime,
           location: body.location || null,
-          organizer: body.organizer, // Keep as comma-separated string
-          organizationType: getOrganizationType(primaryOrganizer),
+          organizer: body.organizer || null, // Keep as comma-separated string or null
+          organizationType: primaryOrganizer ? getOrganizationType(primaryOrganizer) : 'other',
           eventType: body.eventType || null,
           tags: body.tags || "",
           recurrenceRule: body.recurrenceRule || "none",

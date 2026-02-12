@@ -20,7 +20,7 @@ import { ORGANIZER_OPTIONS } from "@/storage/database"
 const eventSchema = z.object({
   id: z.number().optional(),
   title: z.string().min(1, "标题不能为空"),
-  content: z.string().min(1, "内容不能为空"),
+  content: z.string().optional(),
   datePrecision: z.enum(["exact", "month"]),
   date: z.string().optional(),
   isAllDay: z.boolean().optional(),
@@ -28,7 +28,7 @@ const eventSchema = z.object({
   endHour: z.string().optional(),
   approximateMonth: z.string().optional(), // YYYY-MM 格式
   location: z.string().optional(),
-  organizer: z.array(z.string()).min(1, "至少选择一个发起者"),
+  organizer: z.array(z.string()).optional(),
   eventType: z.enum([
     "academic_research",
     "teaching_training",
@@ -197,7 +197,7 @@ function EventFormContent({
           {/* 左侧列 */}
           <div className="space-y-4">
                         <div className="space-y-2">
-              <Label htmlFor="image">活动图片/海报(智能辅助自动填表)</Label>
+              <Label htmlFor="image">活动图片 (AI 自动填表)</Label>
               <div className="flex items-center gap-2">
                 <Input
                   id="image"
@@ -270,7 +270,7 @@ function EventFormContent({
                 }}
                 allLabel="请选择发起者"
                 multiple={true}
-                required={true}
+                required={false}
               />
               {errors.organizer && (
                 <p className="text-sm text-destructive">{errors.organizer.message}</p>
@@ -556,9 +556,7 @@ function EventFormContent({
         </div>
 
         <div className="space-y-2 md:col-span-2">
-          <Label htmlFor="content">
-            活动内容 <span className="text-destructive">*</span>
-          </Label>
+          <Label htmlFor="content">活动内容</Label>
           <Textarea
             id="content"
             {...register("content")}
@@ -936,7 +934,7 @@ export function EventForm({
         tags: allTags,
         imageUrl,
         recurrenceEndDate: data.recurrenceEndDate ? new Date(data.recurrenceEndDate) : null,
-        organizer: data.organizer.join(','), // Convert array to comma-separated string
+        organizer: data.organizer && data.organizer.length > 0 ? data.organizer.join(',') : null, // Convert array to comma-separated string or null
         eventType: data.eventType || null, // Single value, no need to join
       }
 

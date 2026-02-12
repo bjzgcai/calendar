@@ -4,11 +4,11 @@ export interface CalendarEvent {
   start: string
   end: string
   extendedProps: {
-    content: string
+    content?: string
     imageUrl?: string
     link?: string
     location?: string
-    organizer: string
+    organizer?: string
     organizationType: string
     eventType?: string // 活动性质（用于颜色标识）
     tags: string

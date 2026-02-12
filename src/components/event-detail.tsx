@@ -142,19 +142,21 @@ export function EventDetail({ event, open, onOpenChange, onEventDeleted, onEvent
               </div>
             )}
 
-            <div className="flex items-start gap-3">
-              <User className="h-5 w-5 text-muted-foreground mt-0.5" />
-              <div className="flex-1">
-                <p className="font-medium">发起者</p>
-                <div className="flex flex-wrap gap-2 mt-1">
-                  {organizers.map((org, index) => (
-                    <Badge key={index} variant="outline">
-                      {org}
-                    </Badge>
-                  ))}
+            {organizers.length > 0 && (
+              <div className="flex items-start gap-3">
+                <User className="h-5 w-5 text-muted-foreground mt-0.5" />
+                <div className="flex-1">
+                  <p className="font-medium">发起者</p>
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {organizers.map((org, index) => (
+                      <Badge key={index} variant="outline">
+                        {org}
+                      </Badge>
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
             {event.extendedProps.location && (
               <div className="flex items-start gap-3">
@@ -185,10 +187,12 @@ export function EventDetail({ event, open, onOpenChange, onEventDeleted, onEvent
 
           <Separator />
 
-          <div>
-            <p className="font-medium mb-2">活动内容</p>
-            <p className="text-sm text-muted-foreground whitespace-pre-wrap">{event.extendedProps.content}</p>
-          </div>
+          {event.extendedProps.content && (
+            <div>
+              <p className="font-medium mb-2">活动内容</p>
+              <p className="text-sm text-muted-foreground whitespace-pre-wrap">{event.extendedProps.content}</p>
+            </div>
+          )}
 
           {event.extendedProps.link && (
             <div className="flex items-center gap-2">

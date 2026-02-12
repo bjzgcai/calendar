@@ -40,16 +40,27 @@ export function CalendarPageContent() {
 
   // 同步 viewMode 到 URL
   useEffect(() => {
+    const currentView = searchParams.get("view")
+    const currentDate = searchParams.get("date")
+
+    // Only update URL if something actually changed
+    if (currentView === viewMode &&
+        (selectedDate ? currentDate === selectedDate.toISOString() : !currentDate)) {
+      return
+    }
+
     const params = new URLSearchParams(searchParams.toString())
     params.set("view", viewMode)
 
     // Only keep date parameter if it exists
     if (!selectedDate && params.has("date")) {
       params.delete("date")
+    } else if (selectedDate) {
+      params.set("date", selectedDate.toISOString())
     }
 
     router.push(`?${params.toString()}`, { scroll: false })
-  }, [viewMode, router, searchParams, selectedDate])
+  }, [viewMode, selectedDate])
 
   const handleEventClick = (event: CalendarEvent) => {
     setSelectedEvent(event)
@@ -163,7 +174,7 @@ export function CalendarPageContent() {
                 学院活动日历
               </h1>
               <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                查看学院内所有活动，及时了解最新动态
+                内测版, 仅限学院内网访问
               </p>
             </div>
             <div className="flex items-center gap-3">
@@ -230,9 +241,20 @@ export function CalendarPageContent() {
           </div>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-4">
-          {/* Filter Sidebar */}
-          <div className="lg:col-span-1">
+        <div className="lg:grid lg:gap-6 lg:grid-cols-4">
+          {/* Filter Sidebar - hidden on mobile, shown as fixed button instead */}
+          <div className="hidden lg:block lg:col-span-1">
+            <EventFilter
+              key={refreshKey}
+              onEventTypeChange={setEventTypeFilter}
+              onOrganizerChange={setOrganizerFilter}
+              onTagsChange={setTagsFilter}
+              onMyEventsChange={setMyEventsFilter}
+            />
+          </div>
+
+          {/* Filter for mobile - rendered outside grid */}
+          <div className="lg:hidden">
             <EventFilter
               key={refreshKey}
               onEventTypeChange={setEventTypeFilter}

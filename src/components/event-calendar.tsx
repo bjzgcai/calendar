@@ -121,11 +121,17 @@ export function EventCalendar({ onEventClick, onTimeSlotSelect, onViewChange, cu
 
   const handleEventClick = (info: any) => {
     const event = info.event
+
+    // For all-day events, FullCalendar may not set event.end for single-day events
+    // In that case, use event.start as the end time
+    const startDate = event.start
+    const endDate = event.end || event.start
+
     const calendarEvent: CalendarEvent = {
       id: event.id,
       title: event.title,
-      start: event.start?.toISOString() || "",
-      end: event.end?.toISOString() || "",
+      start: startDate?.toISOString() || "",
+      end: endDate?.toISOString() || "",
       extendedProps: {
         content: event.extendedProps.content,
         imageUrl: event.extendedProps.imageUrl,
@@ -268,32 +274,53 @@ export function EventCalendar({ onEventClick, onTimeSlotSelect, onViewChange, cu
     const date = info.date
     const holidayInfo = getHolidayInfo(date)
 
-    if (!holidayInfo) return
+    if (holidayInfo) {
+      // 在日期单元格添加节假日标记
+      const dayNumberEl = info.el.querySelector('.fc-daygrid-day-number, .fc-col-header-cell-cushion')
+      if (dayNumberEl) {
+        // 创建节假日标记元素
+        const badge = document.createElement('span')
+        badge.className = holidayInfo.isHoliday ? 'holiday-badge' : 'workday-badge'
+        badge.textContent = holidayInfo.isHoliday ? '休' : '班'
+        badge.title = holidayInfo.name
 
-    // 在日期单元格添加节假日标记
-    const dayNumberEl = info.el.querySelector('.fc-daygrid-day-number, .fc-col-header-cell-cushion')
-    if (!dayNumberEl) return
+        // 将标记插入到日期数字旁边
+        if (dayNumberEl.parentNode) {
+          const wrapper = document.createElement('div')
+          wrapper.className = 'day-number-wrapper'
+          dayNumberEl.parentNode.insertBefore(wrapper, dayNumberEl)
+          wrapper.appendChild(dayNumberEl)
+          wrapper.appendChild(badge)
+        }
 
-    // 创建节假日标记元素
-    const badge = document.createElement('span')
-    badge.className = holidayInfo.isHoliday ? 'holiday-badge' : 'workday-badge'
-    badge.textContent = holidayInfo.isHoliday ? '休' : '班'
-    badge.title = holidayInfo.name
-
-    // 将标记插入到日期数字旁边
-    if (dayNumberEl.parentNode) {
-      const wrapper = document.createElement('div')
-      wrapper.className = 'day-number-wrapper'
-      dayNumberEl.parentNode.insertBefore(wrapper, dayNumberEl)
-      wrapper.appendChild(dayNumberEl)
-      wrapper.appendChild(badge)
+        // 为节假日单元格添加背景色
+        if (holidayInfo.isHoliday) {
+          info.el.classList.add('holiday-cell')
+        } else {
+          info.el.classList.add('workday-cell')
+        }
+      }
     }
 
-    // 为节假日单元格添加背景色
-    if (holidayInfo.isHoliday) {
-      info.el.classList.add('holiday-cell')
-    } else {
-      info.el.classList.add('workday-cell')
+    // 在年视图中,检测整个月是否已过去并添加样式
+    const view = info.view
+    if (view.type === 'multiMonthYear') {
+      const monthContainer = info.el.closest('.fc-multimonth-month')
+      if (monthContainer && !monthContainer.hasAttribute('data-past-checked')) {
+        monthContainer.setAttribute('data-past-checked', 'true')
+
+        // 获取该月的最后一天
+        const year = date.getFullYear()
+        const month = date.getMonth()
+        const lastDayOfMonth = new Date(year, month + 1, 0)
+        const today = new Date()
+        today.setHours(0, 0, 0, 0)
+
+        // 如果该月的最后一天早于今天,标记整个月为过去
+        if (lastDayOfMonth < today) {
+          monthContainer.classList.add('month-past')
+        }
+      }
     }
   }
 
@@ -485,7 +512,8 @@ export function EventCalendar({ onEventClick, onTimeSlotSelect, onViewChange, cu
           list: "列表",
           multiMonthYear: "年",
         }}
-        allDaySlot={false}
+        allDaySlot={true}
+        allDayText="全天"
         slotMinTime="08:00:00"
         slotMaxTime="24:00:00"
         dayHeaderFormat={{

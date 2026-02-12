@@ -558,6 +558,199 @@
 }
 
 /* ==========================================
+   过去日期样式 - 浅灰色背景
+   ========================================== */
+
+/* 月视图中的过去日期 */
+.fc-daygrid-day.fc-day-past {
+  background-color: rgba(243, 244, 246, 0.6) !important;
+}
+
+.fc-daygrid-day.fc-day-past:hover {
+  background-color: rgba(243, 244, 246, 0.8) !important;
+}
+
+/* 周视图和日视图中的过去日期列 */
+.fc-timegrid-col.fc-day-past {
+  background-color: rgba(243, 244, 246, 0.4) !important;
+}
+
+/* 周视图和日视图中的过去日期表头 */
+.fc-col-header-cell.fc-day-past {
+  background-color: rgba(243, 244, 246, 0.5) !important;
+}
+
+/* 过去日期的日期数字颜色 */
+.fc-day-past .fc-daygrid-day-number,
+.fc-day-past .fc-col-header-cell-cushion,
+.fc-day-past .fc-solar-date {
+  color: #9ca3af !important;
+}
+
+/* 过去日期的农历日期颜色 */
+.fc-day-past .fc-lunar-date {
+  color: #d1d5db !important;
+}
+
+/* 过去日期的星期文字 */
+.fc-day-past .fc-weekday {
+  color: #d1d5db !important;
+}
+
+/* 列表视图中的过去日期 */
+.fc-list-day.fc-day-past {
+  background-color: rgba(243, 244, 246, 0.6) !important;
+}
+
+.fc-list-day.fc-day-past .fc-list-day-text,
+.fc-list-day.fc-day-past .fc-list-day-side-text {
+  color: #9ca3af !important;
+}
+
+/* 列表视图中过去日期的事件容器 */
+.fc-list-day.fc-day-past ~ .space-y-3,
+.fc-list-day.fc-day-past + .space-y-3,
+tr.fc-list-day.fc-day-past ~ tr {
+  background-color: rgba(243, 244, 246, 0.6) !important;
+}
+
+/* 列表视图中过去日期的事件项 */
+.fc-list-day.fc-day-past ~ tr .fc-list-event {
+  background-color: rgba(243, 244, 246, 0.3) !important;
+}
+
+/* 年视图（多月视图）中的过去日期 */
+.fc-multimonth-view .fc-daygrid-day.fc-day-past {
+  background-color: rgba(243, 244, 246, 0.6) !important;
+}
+
+.fc-multimonth-view .fc-daygrid-day.fc-day-past .fc-daygrid-day-number {
+  color: #9ca3af !important;
+}
+
+/* 年视图中的过去月份整体样式 */
+.fc-multimonth-month.month-past {
+  background-color: rgba(243, 244, 246, 0.4) !important;
+}
+
+.fc-multimonth-month.month-past .fc-multimonth-title {
+  color: #9ca3af !important;
+}
+
+.fc-multimonth-month.month-past .fc-daygrid-day-number {
+  color: #9ca3af !important;
+}
+
+.fc-multimonth-month.month-past .fc-col-header-cell-cushion {
+  color: #d1d5db !important;
+}
+
+/* 确保过去的今天仍然有今天的标识，但背景更淡 */
+.fc-day-today.fc-day-past {
+  background-color: rgba(219, 234, 254, 0.4) !important;
+}
+
+.fc-day-today.fc-day-past .fc-solar-date {
+  color: #60a5fa !important;
+}
+
+/* 过去日期中的节假日样式 - 保持节假日颜色但降低透明度 */
+.fc-daygrid-day.fc-day-past.holiday-cell {
+  background-color: rgba(254, 226, 226, 0.2) !important;
+}
+
+.fc-daygrid-day.fc-day-past.workday-cell {
+  background-color: rgba(255, 237, 213, 0.2) !important;
+}
+
+/* Dark mode 支持 */
+@media (prefers-color-scheme: dark) {
+  .fc-daygrid-day.fc-day-past {
+    background-color: rgba(55, 65, 81, 0.4) !important;
+  }
+
+  .fc-daygrid-day.fc-day-past:hover {
+    background-color: rgba(55, 65, 81, 0.6) !important;
+  }
+
+  .fc-timegrid-col.fc-day-past {
+    background-color: rgba(55, 65, 81, 0.3) !important;
+  }
+
+  .fc-col-header-cell.fc-day-past {
+    background-color: rgba(55, 65, 81, 0.4) !important;
+  }
+
+  .fc-day-past .fc-daygrid-day-number,
+  .fc-day-past .fc-col-header-cell-cushion,
+  .fc-day-past .fc-solar-date {
+    color: #6b7280 !important;
+  }
+
+  .fc-day-past .fc-lunar-date,
+  .fc-day-past .fc-weekday {
+    color: #4b5563 !important;
+  }
+
+  .fc-day-today.fc-day-past {
+    background-color: rgba(30, 64, 175, 0.3) !important;
+  }
+
+  .fc-day-past.holiday-cell {
+    background-color: rgba(127, 29, 29, 0.3) !important;
+  }
+
+  .fc-day-past.workday-cell {
+    background-color: rgba(124, 45, 18, 0.3) !important;
+  }
+
+  /* Dark mode - 列表视图中的过去日期 */
+  .fc-list-day.fc-day-past {
+    background-color: rgba(55, 65, 81, 0.4) !important;
+  }
+
+  .fc-list-day.fc-day-past .fc-list-day-text,
+  .fc-list-day.fc-day-past .fc-list-day-side-text {
+    color: #6b7280 !important;
+  }
+
+  /* Dark mode - 列表视图中过去日期的事件容器 */
+  .fc-list-day.fc-day-past ~ .space-y-3,
+  .fc-list-day.fc-day-past + .space-y-3,
+  tr.fc-list-day.fc-day-past ~ tr {
+    background-color: rgba(55, 65, 81, 0.4) !important;
+  }
+
+  /* Dark mode - 列表视图中过去日期的事件项 */
+  .fc-list-day.fc-day-past ~ tr .fc-list-event {
+    background-color: rgba(55, 65, 81, 0.2) !important;
+  }
+
+  /* Dark mode - 年视图中的过去日期 */
+  .fc-multimonth-view .fc-daygrid-day.fc-day-past {
+    background-color: rgba(55, 65, 81, 0.4) !important;
+  }
+
+  .fc-multimonth-view .fc-daygrid-day.fc-day-past .fc-daygrid-day-number {
+    color: #6b7280 !important;
+  }
+
+  /* Dark mode - 年视图中的过去月份整体样式 */
+  .fc-multimonth-month.month-past {
+    background-color: rgba(55, 65, 81, 0.3) !important;
+  }
+
+  .fc-multimonth-month.month-past .fc-multimonth-title,
+  .fc-multimonth-month.month-past .fc-daygrid-day-number {
+    color: #6b7280 !important;
+  }
+
+  .fc-multimonth-month.month-past .fc-col-header-cell-cushion {
+    color: #4b5563 !important;
+  }
+}
+
+/* ==========================================
    "+X more" 悬停链接样式
    ========================================== */
 
@@ -630,5 +823,100 @@
 
   .fc-popover-body {
     max-height: 250px;
+  }
+}
+
+/* ==========================================
+   全天事件区域样式 (All-Day Slot)
+   ========================================== */
+
+/* 全天事件槽标签样式 */
+.fc-timegrid-axis-frame {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fc-timegrid-slot-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #6b7280;
+}
+
+/* 全天事件区域容器 */
+.fc-timegrid-divider {
+  border-color: #e5e7eb !important;
+  padding: 0 !important;
+}
+
+/* 全天事件样式 - 保持原有的彩色背景 */
+.fc-timegrid .fc-daygrid-event {
+  margin: 1px 0 !important;
+  border-radius: 0 !important;
+  padding: 2px 6px !important;
+  cursor: pointer;
+  width: 100%;
+}
+
+.fc-timegrid .fc-daygrid-event:hover {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+  z-index: 10;
+}
+
+/* 全天事件标题 */
+.fc-timegrid .fc-daygrid-event .fc-event-title {
+  font-weight: 500;
+  font-size: 13px;
+  color: white;
+}
+
+/* 全天事件时间（如果显示）*/
+.fc-timegrid .fc-daygrid-event .fc-event-time {
+  display: none; /* 全天事件不显示时间 */
+}
+
+/* 全天事件行自动扩展高度 */
+.fc-timegrid-body .fc-daygrid-body {
+  min-height: auto !important;
+}
+
+.fc-timegrid-body .fc-daygrid-day-frame {
+  min-height: 28px;
+  padding: 2px 0;
+}
+
+/* Dark mode support for all-day slot */
+@media (prefers-color-scheme: dark) {
+  .fc-timegrid-slot-label {
+    color: #9ca3af;
+  }
+
+  .fc-timegrid-divider {
+    border-color: #374151 !important;
+  }
+
+  .fc-timegrid .fc-daygrid-event:hover {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+  }
+}
+
+/* 移动端优化 */
+@media (max-width: 768px) {
+  .fc-timegrid-slot-label {
+    font-size: 11px;
+  }
+
+  .fc-timegrid .fc-daygrid-event {
+    margin: 1px 0 !important;
+    padding: 2px 4px !important;
+  }
+
+  .fc-timegrid .fc-daygrid-event .fc-event-title {
+    font-size: 12px;
+  }
+
+  .fc-timegrid-body .fc-daygrid-day-frame {
+    min-height: 24px;
+    padding: 1px 0;
   }
 }

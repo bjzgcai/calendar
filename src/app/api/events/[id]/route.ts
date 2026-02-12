@@ -44,18 +44,18 @@ export async function PUT(
     }
 
     // organizer is now a comma-separated string, get the primary organizer for type
-    const primaryOrganizer = body.organizer?.split(',')[0]?.trim() || body.organizer;
+    const primaryOrganizer = body.organizer ? body.organizer.split(',')[0]?.trim() : null;
 
     const updatedEvent = await eventManager.updateEvent(parseInt(id), {
       title: body.title,
-      content: body.content,
+      content: body.content || null,
       imageUrl: body.imageUrl,
       link: body.link,
       startTime,
       endTime,
       location: body.location,
-      organizer: body.organizer, // Keep as comma-separated string
-      organizationType: getOrganizationType(primaryOrganizer),
+      organizer: body.organizer || null, // Keep as comma-separated string or null
+      organizationType: primaryOrganizer ? getOrganizationType(primaryOrganizer) : 'other',
       eventType: body.eventType !== undefined ? body.eventType : undefined,
       tags: body.tags,
       recurrenceRule: body.recurrenceRule,
