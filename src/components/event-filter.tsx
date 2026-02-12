@@ -273,6 +273,7 @@ export function EventFilter({ onEventTypeChange, onOrganizerChange, onTagsChange
           </div>
         </div>
       </CardContent>
+      <a className='friend-links'> 友情连接</a>
     </Card>
   )
 }

@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
+import Script from 'next/script';
 import { Inspector } from 'react-dev-inspector';
 import { AuthProvider } from '@/contexts/auth-context';
+import { DingTalkInit } from '@/components/dingtalk-init';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -50,8 +52,15 @@ export default function RootLayout({
 
   return (
     <html lang="en">
+      <head>
+        <Script
+          src="https://g.alicdn.com/dingding/dingtalk-jsapi/2.14.1/dingtalk.open.js"
+          strategy="beforeInteractive"
+        />
+      </head>
       <body className={`antialiased`}>
         {isDev && <Inspector />}
+        <DingTalkInit />
         <AuthProvider>
           {children}
         </AuthProvider>

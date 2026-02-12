@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "build": "next build",
-    "dev": "next dev --turbopack --port 5002",
+    "dev": "node scripts/dev-with-port.js",
     "preinstall": "npx only-allow pnpm",
     "lint": "eslint",
     "start": "next start --port 5002",
