@@ -9,7 +9,16 @@
     "lint": "eslint",
     "start": "next start --port 5002",
     "ts-check": "tsc -p tsconfig.json",
-    "check-holidays": "tsx scripts/check-holiday-update.ts"
+    "check-holidays": "tsx scripts/check-holiday-update.ts",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:chromium": "playwright test --project=chromium-desktop",
+    "test:e2e:firefox": "playwright test --project=firefox-desktop",
+    "test:e2e:webkit": "playwright test --project=webkit-desktop",
+    "test:e2e:mobile": "playwright test --project=iphone-12 --project=pixel-5",
+    "test:e2e:china": "playwright test --project=honor-50 --project=honor-x40 --project=xiaomi-12 --project=redmi-note-11 --project=oppo-reno-8 --project=oppo-find-x5 --project=vivo-x90 --project=vivo-s16",
+    "test:e2e:report": "playwright show-report"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.958.0",
@@ -76,6 +85,7 @@
     "zod": "^4.3.5"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@react-dev-inspector/babel-plugin": "^2.0.1",
     "@react-dev-inspector/middleware": "^2.0.1",
     "@tailwindcss/postcss": "^4",
@@ -87,6 +97,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.1.1",
     "only-allow": "^1.2.2",
+    "playwright": "^1.58.2",
     "react-dev-inspector": "^2.0.1",
     "shadcn": "latest",
     "tailwindcss": "^4",
