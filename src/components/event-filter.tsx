@@ -1,24 +1,6 @@
 "use client"
 
 import { useState, useEffect } from "react"
-
-// Declare DingTalk types
-declare global {
-  interface Window {
-    dd?: {
-      ready: (callback: () => void) => void;
-      biz: {
-        util: {
-          openLink: (options: {
-            url: string;
-            onSuccess?: (result: unknown) => void;
-            onFail?: (err: unknown) => void;
-          }) => void;
-        };
-      };
-    };
-  }
-}
 import { Filter, X, Search, Tag, Info } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
