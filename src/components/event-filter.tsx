@@ -1,6 +1,24 @@
 "use client"
 
 import { useState, useEffect } from "react"
+
+// Declare DingTalk types
+declare global {
+  interface Window {
+    dd?: {
+      ready: (callback: () => void) => void;
+      biz: {
+        util: {
+          openLink: (options: {
+            url: string;
+            onSuccess?: (result: unknown) => void;
+            onFail?: (err: unknown) => void;
+          }) => void;
+        };
+      };
+    };
+  }
+}
 import { Filter, X, Search, Tag, Info } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -126,6 +144,26 @@ export function EventFilter({ onEventTypeChange, onOrganizerChange, onTagsChange
     onTagsChange([])
     onMyEventsChange(false)
     setTagSearchQuery("")
+  }
+
+  // Handle DingTalk AI Assistant button click
+  const handleAIAssistantClick = () => {
+    if (typeof window !== 'undefined' && window.dd) {
+      window.dd.ready(() => {
+        window.dd?.biz.util.openLink({
+          url: "https://applink.dingtalk.com/client/aiAgent?assistantId=6ce459779cff4ed5b56e097a8bc8284b&from=share",
+          onSuccess: (result) => {
+            console.log('AI助理打开成功', result);
+          },
+          onFail: (err) => {
+            console.error('AI助理打开失败', err);
+          },
+        });
+      });
+    } else {
+      // Fallback for non-DingTalk environment
+      window.open("https://applink.dingtalk.com/client/aiAgent?assistantId=6ce459779cff4ed5b56e097a8bc8284b&from=share", "_blank");
+    }
   }
 
   // Filter tags based on search query
@@ -366,6 +404,17 @@ export function EventFilter({ onEventTypeChange, onOrganizerChange, onTagsChange
               </p>
             )}
           </div>
+
+          {/* 两院人力 AI助理按钮 */}
+          <div className="pt-4 border-t">
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={handleAIAssistantClick}
+            >
+              🤖 两院人力 AI助理
+            </Button>
+          </div>
         </div>
 
         {/* 移动端底部确认按钮 */}
@@ -579,6 +628,17 @@ export function EventFilter({ onEventTypeChange, onOrganizerChange, onTagsChange
                 已选择 {selectedTags.length} 个标签（显示包含所有标签的活动）
               </p>
             )}
+          </div>
+
+          {/* 两院人力 AI助理按钮 */}
+          <div className="pt-4 border-t">
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={handleAIAssistantClick}
+            >
+              🤖 两院人力 AI助理
+            </Button>
           </div>
         </div>
       </CardContent>
