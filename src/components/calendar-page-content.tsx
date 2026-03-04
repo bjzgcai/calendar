@@ -9,6 +9,7 @@ import { EventListView } from "@/components/event-list-view"
 import { EventYearListView } from "@/components/event-year-list-view"
 import { EventDetail } from "@/components/event-detail"
 import { EventForm } from "@/components/event-form"
+import { BatchCreateEventsDialog } from "@/components/batch-create-events-dialog"
 import { EventFilter } from "@/components/event-filter"
 import { UserMenu } from "@/components/user-menu"
 import { CalendarEvent } from "@/types/calendar"
@@ -29,6 +30,7 @@ export function CalendarPageContent() {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null)
   const [detailOpen, setDetailOpen] = useState(false)
   const [formOpen, setFormOpen] = useState(false)
+  const [batchFormOpen, setBatchFormOpen] = useState(false)
   const [initialFormValues, setInitialFormValues] = useState<any>(undefined)
   const [eventTypeFilter, setEventTypeFilter] = useState<string | string[] | undefined>()
   const [organizerFilter, setOrganizerFilter] = useState<string | string[] | undefined>()
@@ -237,6 +239,12 @@ export function CalendarPageContent() {
                 <Image src="/icon.svg" alt="Calendar Icon" width={16} height={16} className="mr-2 h-4 w-4" />
                 创建活动
               </button>
+              <button
+                onClick={() => setBatchFormOpen(true)}
+                className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2"
+              >
+                批量创建
+              </button>
               <UserMenu />
             </div>
           </div>
@@ -323,6 +331,12 @@ export function CalendarPageContent() {
           onOpenChange={setFormOpen}
           initialValues={initialFormValues}
           onSuccess={handleFormSuccess}
+        />
+
+        <BatchCreateEventsDialog
+          open={batchFormOpen}
+          onOpenChange={setBatchFormOpen}
+          onSuccess={handleRefresh}
         />
       </div>
     </div>

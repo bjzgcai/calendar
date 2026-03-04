@@ -79,22 +79,25 @@ export const insertEventSchema = createCoercedInsertSchema(events)
 
 // 单独覆盖 timestamp 字段，确保正确处理
 export const insertEventWithCoercionSchema = createCoercedInsertSchema(events, {
-  startTime: z.string().transform((val) => {
+  startTime: z.union([z.string(), z.date()]).transform((val) => {
+    if (val instanceof Date) return val
     const date = new Date(val)
     if (isNaN(date.getTime())) {
       throw new Error(`Invalid date: ${val}`)
     }
     return date
   }),
-  endTime: z.string().transform((val) => {
+  endTime: z.union([z.string(), z.date()]).transform((val) => {
+    if (val instanceof Date) return val
     const date = new Date(val)
     if (isNaN(date.getTime())) {
       throw new Error(`Invalid date: ${val}`)
     }
     return date
   }),
-  recurrenceEndDate: z.string().nullable().optional().transform((val) => {
+  recurrenceEndDate: z.union([z.string().nullable(), z.date().nullable()]).nullable().optional().transform((val) => {
     if (!val) return null
+    if (val instanceof Date) return val
     const date = new Date(val)
     return isNaN(date.getTime()) ? null : date
   }),

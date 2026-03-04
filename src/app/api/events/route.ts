@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { eventManager } from "@/storage/database/eventManager";
 import { addDays, addWeeks, addMonths, isWeekend } from "date-fns";
 import type { Event } from "@/storage/database";
-import { EVENT_TYPE_COLORS, getEventTypeColor, getOrganizationType } from "@/storage/database";
+import { getEventTypeColor, getOrganizationType } from "@/storage/database";
 import { getSession } from "@/lib/session";
 
 export async function GET(request: NextRequest) {
@@ -96,12 +96,16 @@ export async function POST(request: NextRequest) {
 
     // 如果传入了 date, startHour, endHour，则构建 startTime 和 endTime
     const startTime = body.date && body.startHour
-      ? new Date(`${body.date}T${body.startHour}:00`).toISOString()
-      : body.startTime;
+      ? new Date(`${body.date}T${body.startHour}:00`)
+      : new Date(body.startTime);
 
     const endTime = body.date && body.endHour
-      ? new Date(`${body.date}T${body.endHour}:00`).toISOString()
-      : body.endTime;
+      ? new Date(`${body.date}T${body.endHour}:00`)
+      : new Date(body.endTime);
+
+    if (isNaN(startTime.getTime()) || isNaN(endTime.getTime())) {
+      return NextResponse.json({ error: "Invalid event date/time" }, { status: 400 });
+    }
 
     // 创建主活动（根据发起者自动判断机构类型）
     // organizer is now a comma-separated string, get the primary organizer for type
@@ -129,8 +133,8 @@ export async function POST(request: NextRequest) {
 
     // 如果有重复规则，生成重复活动
     if (body.recurrenceRule && body.recurrenceRule !== "none" && body.recurrenceEndDate) {
-      const startDate = new Date(body.startTime);
-      const endDate = new Date(body.endTime);
+      const startDate = startTime;
+      const endDate = endTime;
       const recurrenceEndDate = new Date(body.recurrenceEndDate);
       const duration = endDate.getTime() - startDate.getTime();
 
