@@ -8,6 +8,11 @@ declare global {
     dd?: {
       ready: (callback: () => void) => void;
       error: (callback: (err: unknown) => void) => void;
+      requestAuthCode: (options: {
+        clientId: string;
+        success?: (result: { code: string }) => void;
+        fail?: (err: unknown) => void;
+      }) => void;
       biz: {
         util: {
           openLink: (options: {
@@ -30,8 +35,7 @@ export function DingTalkInit() {
       console.log('[DingTalkInit] window.dd available:', typeof window.dd !== 'undefined');
 
       if (typeof window.dd === 'undefined') {
-        console.warn('[DingTalkInit] DingTalk SDK not available - not in DingTalk environment');
-        alert('当前不在钉钉环境');
+        console.log('[DingTalkInit] Not in DingTalk environment, skipping');
         return;
       }
 
@@ -39,6 +43,30 @@ export function DingTalkInit() {
 
       window.dd.ready(() => {
         console.log('[DingTalkInit] 钉钉环境加载完成');
+
+        // Auto-login: check SSO config and login status, then get auth code if needed
+        Promise.all([
+          fetch('/api/auth/config').then(r => r.json()),
+          fetch('/api/auth/user'),
+        ]).then(([config, userRes]) => {
+          if (config.ssoEnabled && !userRes.ok && config.clientId) {
+            console.log('[DingTalkInit] SSO enabled, user not logged in — requesting auth code');
+            window.dd?.requestAuthCode({
+              clientId: config.clientId,
+              success: (result) => {
+                console.log('[DingTalkInit] Auth code obtained, redirecting to callback');
+                window.location.href = `/api/auth/callback?code=${result.code}`;
+              },
+              fail: (err) => {
+                console.error('[DingTalkInit] requestAuthCode failed:', err);
+              },
+            });
+          } else {
+            console.log('[DingTalkInit] SSO disabled or already logged in, skipping auto-login');
+          }
+        }).catch(err => {
+          console.error('[DingTalkInit] Auto-login check failed:', err);
+        });
 
         // Function to handle friend link clicks
         const handleFriendLinkClick = (e: Event) => {
