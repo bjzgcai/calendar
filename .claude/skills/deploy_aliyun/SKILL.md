@@ -30,9 +30,10 @@ When this skill is invoked:
      git commit -m "COMMIT_MESSAGE"
      git push
      ```
-   - Copy the skill-specific env file to the server:
+   - Copy the project env files to the server:
      ```bash
-     scp -i ~/.ssh/wu.pem .claude/skills/deploy_aliyun/.env ecs-user@112.126.63.117:/home/ecs-user/calendar/.env
+     scp -i ~/.ssh/wu.pem .env ecs-user@112.126.63.117:/home/ecs-user/calendar/.env
+     scp -i ~/.ssh/wu.pem .env.local ecs-user@112.126.63.117:/home/ecs-user/calendar/.env.local
      ```
    - Build locally:
      ```bash
