@@ -11,7 +11,8 @@ export async function GET(request: NextRequest) {
   }
 
   // 获取当前应用的 URL 来构建回调地址
-  const protocol = process.env.NODE_ENV === "production" ? "https" : "http";
+  // Use APP_PROTOCOL env var to avoid forcing https when server runs plain HTTP
+  const protocol = process.env.APP_PROTOCOL || "http";
   const host = request.headers.get("host") || "localhost:5002";
   const redirectUri = `${protocol}://${host}/api/auth/callback`;
 

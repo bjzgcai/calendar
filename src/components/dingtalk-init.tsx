@@ -9,9 +9,9 @@ declare global {
       ready: (callback: () => void) => void;
       error: (callback: (err: unknown) => void) => void;
       requestAuthCode: (options: {
-        clientId: string;
-        success?: (result: { code: string }) => void;
-        fail?: (err: unknown) => void;
+        corpId: string;
+        onSuccess?: (result: { code: string }) => void;
+        onFail?: (err: unknown) => void;
       }) => void;
       biz: {
         util: {
@@ -49,15 +49,15 @@ export function DingTalkInit() {
           fetch('/api/auth/config').then(r => r.json()),
           fetch('/api/auth/user'),
         ]).then(([config, userRes]) => {
-          if (config.ssoEnabled && !userRes.ok && config.clientId) {
+          if (config.ssoEnabled && !userRes.ok && config.corpId) {
             console.log('[DingTalkInit] SSO enabled, user not logged in — requesting auth code');
             window.dd?.requestAuthCode({
-              clientId: config.clientId,
-              success: (result) => {
+              corpId: config.corpId,
+              onSuccess: (result) => {
                 console.log('[DingTalkInit] Auth code obtained, redirecting to callback');
                 window.location.href = `/api/auth/callback?code=${result.code}`;
               },
-              fail: (err) => {
+              onFail: (err) => {
                 console.error('[DingTalkInit] requestAuthCode failed:', err);
               },
             });

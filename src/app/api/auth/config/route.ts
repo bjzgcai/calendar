@@ -5,5 +5,6 @@ export async function GET() {
   return NextResponse.json({
     ssoEnabled: isDingTalkSSOEnabled(),
     clientId: process.env.DINGTALK_CLIENT_ID || "",
+    corpId: process.env.DINGTALK_CORP_ID || "",
   });
 }
