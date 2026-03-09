@@ -11,10 +11,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { LogIn, LogOut, User } from "lucide-react";
+import { LogOut, User } from "lucide-react";
 
 export function UserMenu() {
-  const { user, loading, ssoEnabled, login, logout } = useAuth();
+  const { user, loading, ssoEnabled, logout } = useAuth();
 
   if (loading) {
     return (
@@ -30,12 +30,7 @@ export function UserMenu() {
   }
 
   if (!user || !user.isLoggedIn) {
-    return (
-      <Button onClick={login} variant="outline" size="sm">
-        <LogIn className="h-4 w-4 mr-2" />
-        钉钉登录
-      </Button>
-    );
+    return null;
   }
 
   const initials = user.name

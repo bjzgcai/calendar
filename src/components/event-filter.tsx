@@ -128,26 +128,6 @@ export function EventFilter({ onEventTypeChange, onOrganizerChange, onTagsChange
     setTagSearchQuery("")
   }
 
-  // Handle DingTalk AI Assistant button click
-  const handleAIAssistantClick = () => {
-    if (typeof window !== 'undefined' && window.dd) {
-      window.dd.ready(() => {
-        window.dd?.biz.util.openLink({
-          url: "https://applink.dingtalk.com/client/aiAgent?assistantId=6ce459779cff4ed5b56e097a8bc8284b&from=share",
-          onSuccess: (result) => {
-            console.log('AI助理打开成功', result);
-          },
-          onFail: (err) => {
-            console.error('AI助理打开失败', err);
-          },
-        });
-      });
-    } else {
-      // Fallback for non-DingTalk environment
-      window.open("https://applink.dingtalk.com/client/aiAgent?assistantId=6ce459779cff4ed5b56e097a8bc8284b&from=share", "_blank");
-    }
-  }
-
   // Filter tags based on search query
   const filteredTags = tags.filter((tag) =>
     tag.name.toLowerCase().includes(tagSearchQuery.toLowerCase())
@@ -387,16 +367,6 @@ export function EventFilter({ onEventTypeChange, onOrganizerChange, onTagsChange
             )}
           </div>
 
-          {/* 两院人力 AI助理按钮 */}
-          <div className="pt-4 border-t">
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={handleAIAssistantClick}
-            >
-              🤖 两院人力 AI助理
-            </Button>
-          </div>
         </div>
 
         {/* 移动端底部确认按钮 */}
@@ -612,16 +582,6 @@ export function EventFilter({ onEventTypeChange, onOrganizerChange, onTagsChange
             )}
           </div>
 
-          {/* 两院人力 AI助理按钮 */}
-          <div className="pt-4 border-t">
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={handleAIAssistantClick}
-            >
-              🤖 两院人力 AI助理
-            </Button>
-          </div>
         </div>
       </CardContent>
     </Card>

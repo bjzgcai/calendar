@@ -1,8 +1,5 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { getIronSession } from "iron-session";
-import { sessionOptions, SessionData, defaultSession } from "@/lib/session";
-import { isDingTalkSSOEnabled } from "@/lib/dingtalk";
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -25,23 +22,9 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // If SSO is disabled, allow all page routes without authentication
-  if (!isDingTalkSSOEnabled()) {
-    return NextResponse.next();
-  }
-
-  // For page routes when SSO is enabled, check authentication
-  const response = NextResponse.next();
-  const session = await getIronSession<SessionData>(request, response, sessionOptions);
-
-  // Check if user is logged in
-  if (!session.isLoggedIn) {
-    // Redirect to login page for page routes
-    const loginUrl = new URL("/api/auth/login", request.url);
-    return NextResponse.redirect(loginUrl);
-  }
-
-  return response;
+  // All page routes are accessible in read-only mode without authentication.
+  // Edit permissions are enforced client-side based on SSO login state.
+  return NextResponse.next();
 }
 
 export const config = {

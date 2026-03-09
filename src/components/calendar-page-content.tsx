@@ -14,12 +14,15 @@ import { EventFilter } from "@/components/event-filter"
 import { UserMenu } from "@/components/user-menu"
 import { CalendarEvent } from "@/types/calendar"
 import { Button } from "@/components/ui/button"
+import { useAuth } from "@/contexts/auth-context"
 
 type ViewMode = "year" | "month" | "week" | "day" | "list"
 
 export function CalendarPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { user, ssoEnabled, login } = useAuth()
+  const canEdit = !ssoEnabled || !!user
 
   // 从 URL 读取初始视图模式和日期
   const initialViewMode = (searchParams.get("view") as ViewMode) || "year"
@@ -70,6 +73,7 @@ export function CalendarPageContent() {
   }
 
   const handleTimeSlotSelect = (start: Date, end: Date) => {
+    if (!canEdit) return
     // 将时间转换为表单所需的格式
     const formatDate = (date: Date) => {
       return date.toISOString().split('T')[0]
@@ -232,19 +236,30 @@ export function CalendarPageContent() {
                 </Button>
               </div>
 
-              <button
-                onClick={() => setFormOpen(true)}
-                className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 py-2"
-              >
-                <Image src="/icon.svg" alt="Calendar Icon" width={16} height={16} className="mr-2 h-4 w-4" />
-                创建活动
-              </button>
-              <button
-                onClick={() => setBatchFormOpen(true)}
-                className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2"
-              >
-                批量创建
-              </button>
+              {canEdit && (
+                <button
+                  onClick={() => setFormOpen(true)}
+                  className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 py-2"
+                >
+                  <Image src="/icon.svg" alt="Calendar Icon" width={16} height={16} className="mr-2 h-4 w-4" />
+                  创建活动
+                </button>
+              )}
+              {canEdit ? (
+                <button
+                  onClick={() => setBatchFormOpen(true)}
+                  className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2"
+                >
+                  批量创建
+                </button>
+              ) : ssoEnabled && (
+                <button
+                  onClick={login}
+                  className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all border border-primary text-primary hover:bg-primary/10 h-9 px-4 py-2"
+                >
+                  点击登录，创建编辑活动
+                </button>
+              )}
               <UserMenu />
             </div>
           </div>

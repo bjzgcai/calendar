@@ -33,17 +33,25 @@ When this skill is invoked:
      git commit -m "COMMIT_MESSAGE"
      git push
      ```
-   - Copy the project root `.env` to the attendance machine server:
+   - Copy the skill-specific env file to the server:
      ```bash
-     scp -o StrictHostKeyChecking=no .env ecs-user@10.101.1.253:/home/ecs-user/calendar/.env
+     scp -o StrictHostKeyChecking=no .claude/skills/deploy_attendance_machine/.env ecs-user@10.101.1.253:/home/ecs-user/calendar/.env
      ```
-   - SSH to attendance machine server and deploy:
+   - Build locally:
+     ```bash
+     pnpm build
+     ```
+   - Rsync source files and build output to server (excludes node_modules and test assets):
+     ```bash
+     rsync -avz --exclude='.git' --exclude='node_modules' --exclude='public/posters' \
+       -e "ssh -o StrictHostKeyChecking=no" \
+       . ecs-user@10.101.1.253:/home/ecs-user/calendar/
+     ```
+   - SSH to server and restart with the pre-built output:
      ```bash
      ssh -o StrictHostKeyChecking=no ecs-user@10.101.1.253 "
        cd /home/ecs-user/calendar &&
-       git pull &&
        pnpm install --frozen-lockfile &&
-       pnpm build &&
        pm2 restart calendar
      "
      ```
@@ -53,10 +61,17 @@ When this skill is invoked:
    - After successful deployment, check for temporary files
    - Remove any unnecessary files per user's global instructions
 
+## Server Details
+- **Host**: 10.101.1.253
+- **User**: ecs-user
+- **App Port**: 5002
+- **Project Dir**: /home/ecs-user/calendar
+- **Process Manager**: PM2 (process name: `calendar`)
+
 ## Example
 
 ```
-User: /deploy
+User: /deploy_attendance_machine
 Assistant: Deploying with commit message: "Fix timezone handling in event display"
 [Executes deployment immediately]
 ```

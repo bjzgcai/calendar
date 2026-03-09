@@ -22,6 +22,37 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const CACHE_KEY = "dingtalk_auth_cache";
+const CACHE_DURATION = 7 * 24 * 60 * 60 * 1000; // 1 week
+
+function getLocalStorageUser(): User | null {
+  try {
+    const cached = localStorage.getItem(CACHE_KEY);
+    if (!cached) return null;
+    const { user, expiry } = JSON.parse(cached);
+    if (Date.now() > expiry) {
+      localStorage.removeItem(CACHE_KEY);
+      return null;
+    }
+    return user;
+  } catch {
+    return null;
+  }
+}
+
+function saveLocalStorageUser(user: User | null) {
+  try {
+    if (user) {
+      localStorage.setItem(
+        CACHE_KEY,
+        JSON.stringify({ user, expiry: Date.now() + CACHE_DURATION })
+      );
+    } else {
+      localStorage.removeItem(CACHE_KEY);
+    }
+  } catch {}
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -44,19 +75,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const response = await fetch("/api/auth/user");
       if (response.ok) {
         const userData = await response.json();
-        console.log("=== 用户登录信息 ===");
-        console.log("用户ID:", userData.userId);
-        console.log("钉钉用户ID:", userData.dingtalkUserId);
-        console.log("用户名:", userData.name);
-        console.log("头像:", userData.avatar);
-        console.log("邮箱:", userData.email);
-        console.log("登录状态:", userData.isLoggedIn);
-        console.log("完整用户数据:", userData);
-        console.log("===================");
         setUser(userData);
+        saveLocalStorageUser(userData);
       } else {
-        console.log("用户未登录或会话已过期");
         setUser(null);
+        saveLocalStorageUser(null);
       }
     } catch (error) {
       console.error("Failed to fetch user:", error);
@@ -67,6 +90,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
+    // Restore from localStorage immediately to avoid loading flicker
+    const cached = getLocalStorageUser();
+    if (cached) {
+      setUser(cached);
+      setLoading(false);
+    }
+
     fetchConfig();
     fetchUser();
   }, []);
@@ -79,6 +109,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await fetch("/api/auth/logout", { method: "POST" });
       setUser(null);
+      saveLocalStorageUser(null);
       window.location.href = "/";
     } catch (error) {
       console.error("Logout failed:", error);

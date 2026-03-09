@@ -34,13 +34,21 @@ When this skill is invoked:
      ```bash
      scp -i ~/.ssh/wu.pem .claude/skills/deploy_aliyun/.env ecs-user@112.126.63.117:/home/ecs-user/calendar/.env
      ```
-   - SSH to Aliyun server and deploy:
+   - Build locally:
+     ```bash
+     pnpm build
+     ```
+   - Rsync source files and build output to server (excludes node_modules and test assets):
+     ```bash
+     rsync -avz --exclude='.git' --exclude='node_modules' --exclude='public/posters' \
+       -e "ssh -i ~/.ssh/wu.pem -o StrictHostKeyChecking=no" \
+       . ecs-user@112.126.63.117:/home/ecs-user/calendar/
+     ```
+   - SSH to server and restart with the pre-built output:
      ```bash
      ssh -i ~/.ssh/wu.pem -o StrictHostKeyChecking=no ecs-user@112.126.63.117 "
        cd /home/ecs-user/calendar &&
-       git pull &&
        pnpm install --frozen-lockfile &&
-       pnpm build &&
        pm2 restart calendar
      "
      ```

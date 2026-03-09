@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { CalendarEvent } from "@/types/calendar"
 import { getEventTypeColor } from "@/storage/database"
+import { useAuth } from "@/contexts/auth-context"
 
 interface EventDetailProps {
   event: CalendarEvent | null
@@ -30,6 +31,8 @@ interface EventDetailProps {
 
 export function EventDetail({ event, open, onOpenChange, onEventDeleted, onEventEdit }: EventDetailProps) {
   const [deleting, setDeleting] = useState(false)
+  const { user, ssoEnabled } = useAuth()
+  const canEdit = !ssoEnabled || !!user
 
   if (!event) return null
 
@@ -99,7 +102,7 @@ export function EventDetail({ event, open, onOpenChange, onEventDeleted, onEvent
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto [&>button]:h-8 [&>button]:w-8 [&>button>svg]:size-5">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto [&>button]:h-8 [&>button]:w-8 [&>button>svg]:size-5 [&>button]:top-6">
         <DialogHeader>
           <DialogTitle className="text-2xl pr-8">{event.title}</DialogTitle>
         </DialogHeader>
@@ -236,44 +239,46 @@ export function EventDetail({ event, open, onOpenChange, onEventDeleted, onEvent
             </div>
           )}
 
-          <Separator />
+          {canEdit && <Separator />}
 
-          <div className="flex gap-2">
-            <Button
-              onClick={() => onEventEdit?.(event)}
-              variant="outline"
-              className="flex-1"
-            >
-              <Edit className="mr-2 h-4 w-4" />
-              编辑活动
-            </Button>
+          {canEdit && (
+            <div className="flex gap-2">
+              <Button
+                onClick={() => onEventEdit?.(event)}
+                variant="outline"
+                className="flex-1"
+              >
+                <Edit className="mr-2 h-4 w-4" />
+                编辑活动
+              </Button>
 
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="destructive" disabled={deleting}>
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  {deleting ? "删除中..." : "删除活动"}
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle className="flex items-center gap-2">
-                    <AlertTriangle className="h-5 w-5 text-destructive" />
-                    确认删除
-                  </AlertDialogTitle>
-                  <AlertDialogDescription>
-                    您确定要删除此活动吗？此操作无法撤销。
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>取消</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
-                    确认删除
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </div>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" disabled={deleting}>
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    {deleting ? "删除中..." : "删除活动"}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle className="flex items-center gap-2">
+                      <AlertTriangle className="h-5 w-5 text-destructive" />
+                      确认删除
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                      您确定要删除此活动吗？此操作无法撤销。
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>取消</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
+                      确认删除
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>
