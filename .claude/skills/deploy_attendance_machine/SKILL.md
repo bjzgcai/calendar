@@ -1,11 +1,11 @@
 ---
-name: deploy
-description: Auto-generate commit message and deploy to production
+name: deploy_attendance_machine
+description: Auto-generate commit message and deploy to attendance machine server (10.101.1.253)
 disable-model-invocation: false
 allowed-tools: Bash, Read
 ---
 
-# Deploy to Production
+# Deploy to Attendance Machine Server (10.101.1.253)
 
 When this skill is invoked:
 
@@ -27,11 +27,26 @@ When this skill is invoked:
      - "Fix event type display and timezone handling"
 
 3. **Execute deployment immediately**
-   - Run: `./deploy-to-server.sh "COMMIT_MESSAGE"` from project root
-   - The script will:
-     - Commit the changes with `git add . && git commit`
-     - Push to remote repository
-     - SSH to production server (10.101.1.253) and deploy
+   - Commit and push changes:
+     ```bash
+     git add .
+     git commit -m "COMMIT_MESSAGE"
+     git push
+     ```
+   - Copy the project root `.env` to the attendance machine server:
+     ```bash
+     scp -o StrictHostKeyChecking=no .env ecs-user@10.101.1.253:/home/ecs-user/calendar/.env
+     ```
+   - SSH to attendance machine server and deploy:
+     ```bash
+     ssh -o StrictHostKeyChecking=no ecs-user@10.101.1.253 "
+       cd /home/ecs-user/calendar &&
+       git pull &&
+       pnpm install --frozen-lockfile &&
+       pnpm build &&
+       pm2 restart calendar
+     "
+     ```
    - Monitor output and report any errors
 
 4. **Clean up**

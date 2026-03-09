@@ -21,10 +21,11 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Configuration
-REMOTE_USER="ubuntu"
-REMOTE_HOST="10.101.1.253"
-REMOTE_PROJECT_DIR="/home/ubuntu/git/calendar"
-SUDO_PASSWORD="1"
+REMOTE_USER="ecs-user"
+REMOTE_HOST="112.126.63.117"
+REMOTE_SSH_KEY="$HOME/.ssh/wu.pem"
+REMOTE_PROJECT_DIR="/home/ecs-user/calendar"
+APP_PORT=5002
 
 # Log functions
 log_info() {
@@ -106,12 +107,12 @@ echo ""
 ###############################################################################
 # Step 4: Deploy to Remote Server
 ###############################################################################
-log_info "Step 4: Deploying to production server ($REMOTE_HOST)..."
+log_info "Step 4: Deploying to Aliyun ECS server ($REMOTE_HOST)..."
 echo ""
 
 # SSH to remote server and deploy
 # Using heredoc to avoid issues with special characters in password
-ssh -t ${REMOTE_USER}@${REMOTE_HOST} << EOF
+ssh -t -i "${REMOTE_SSH_KEY}" ${REMOTE_USER}@${REMOTE_HOST} << EOF
 set -e
 
 echo "=== Connected to production server ==="
@@ -127,8 +128,15 @@ echo ""
 echo "=== Starting deployment script ==="
 echo ""
 
-# Run deployment script with sudo password
-echo "${SUDO_PASSWORD}" | sudo -S ./deploy.sh
+# Run deployment script
+if [ -f ./deploy.sh ]; then
+    sudo ./deploy.sh
+else
+    echo "Installing dependencies and restarting..."
+    pnpm install --frozen-lockfile
+    pnpm build
+    pm2 restart calendar 2>/dev/null || pm2 start "pnpm start" --name calendar -- --port ${APP_PORT}
+fi
 
 echo ""
 echo "=== Deployment complete ==="
@@ -145,6 +153,7 @@ if [ $DEPLOY_EXIT_CODE -eq 0 ]; then
     echo ""
     log_info "Your changes have been deployed to production"
     log_info "Server: ${REMOTE_HOST}"
+    log_info "App running on port: ${APP_PORT}"
 else
     log_error "=========================================="
     log_error "Deployment Failed!"
@@ -152,7 +161,7 @@ else
     echo ""
     log_info "Please check the error messages above"
     log_info "You may need to SSH to the server and check logs:"
-    echo "  ssh ${REMOTE_USER}@${REMOTE_HOST}"
+    echo "  ssh -i ${REMOTE_SSH_KEY} ${REMOTE_USER}@${REMOTE_HOST}"
     echo "  cd ${REMOTE_PROJECT_DIR}"
     echo "  sudo journalctl -u calendar-events -n 50"
     exit 1
