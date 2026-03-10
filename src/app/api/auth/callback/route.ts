@@ -103,7 +103,7 @@ export async function GET(request: NextRequest) {
     // 5. 重定向回首页
     console.log("5. Redirecting to home page...");
     console.log("=== DingTalk Auth Callback Completed ===");
-    return NextResponse.redirect(new URL("/", request.url));
+    return NextResponse.redirect("http://112.126.63.117:5002/?view=year");
   } catch (error) {
     console.error("DingTalk OAuth callback error:", error);
     return NextResponse.json(
