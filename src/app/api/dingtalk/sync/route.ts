@@ -9,7 +9,7 @@ export async function POST() {
 
     const totalCreated = results.reduce((s, r) => s + r.created, 0)
     const totalUpdated = results.reduce((s, r) => s + r.updated, 0)
-    const errors = results.filter((r) => r.error).map((r) => `${r.staffId}: ${r.error}`)
+    const errors = results.filter((r) => r.error).map((r) => `${r.userId}: ${r.error}`)
 
     return NextResponse.json({
       success: errors.length === 0,
