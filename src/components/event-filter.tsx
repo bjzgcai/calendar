@@ -138,12 +138,12 @@ export function EventFilter({ onEventTypeChange, onOrganizerChange, onTagsChange
 
   const hasFilters = (selectedEventType && selectedEventType.length > 0) || (selectedOrganizer && selectedOrganizer.length > 0) || selectedTags.length > 0 || myEvents
 
-  // 移动端：显示浮动按钮
+  // 移动端：显示内联按钮
   if (isMobile && !isOpen) {
     return (
       <Button
         onClick={() => setIsOpen(true)}
-        className="fixed top-4 right-4 z-50 shadow-lg"
+        className="shadow-sm"
         size="sm"
       >
         <Filter className="h-4 w-4 mr-2" />

@@ -211,11 +211,11 @@ export function CalendarPageContent() {
                 <Image src="/icon.svg" alt="Calendar Icon" width={32} height={32} className="h-8 w-8" />
                 学院活动日历
               </h1>
-              <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+              {/* <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
                 内测版, 仅限学院内网访问
-              </p>
+              </p> */}
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
               {/* 视图切换按钮 */}
               <div className="flex items-center gap-1 bg-secondary/50 rounded-lg p-1">
                 <Button
@@ -303,25 +303,24 @@ export function CalendarPageContent() {
                   {syncStatus === "syncing" ? "同步中…" : syncStatus === "error" ? "同步失败" : "钉钉同步"}
                 </span>
               </button>
+              {/* Mobile filter button - inline in header */}
+              <div className="lg:hidden">
+                <EventFilter
+                  key={refreshKey}
+                  onEventTypeChange={setEventTypeFilter}
+                  onOrganizerChange={setOrganizerFilter}
+                  onTagsChange={setTagsFilter}
+                  onMyEventsChange={setMyEventsFilter}
+                />
+              </div>
               <UserMenu />
             </div>
           </div>
         </div>
 
         <div className="lg:grid lg:gap-6 lg:grid-cols-4">
-          {/* Filter Sidebar - hidden on mobile, shown as fixed button instead */}
+          {/* Filter Sidebar - desktop only */}
           <div className="hidden lg:block lg:col-span-1">
-            <EventFilter
-              key={refreshKey}
-              onEventTypeChange={setEventTypeFilter}
-              onOrganizerChange={setOrganizerFilter}
-              onTagsChange={setTagsFilter}
-              onMyEventsChange={setMyEventsFilter}
-            />
-          </div>
-
-          {/* Filter for mobile - rendered outside grid */}
-          <div className="lg:hidden">
             <EventFilter
               key={refreshKey}
               onEventTypeChange={setEventTypeFilter}
