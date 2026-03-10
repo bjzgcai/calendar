@@ -1,11 +1,11 @@
 ---
 name: deploy_aliyun
-description: Auto-generate commit message and deploy to Aliyun ECS server (112.126.63.117)
+description: Auto-generate commit message and deploy to Aliyun ECS server (39.97.62.60)
 disable-model-invocation: false
 allowed-tools: Bash, Read
 ---
 
-# Deploy to Aliyun ECS (112.126.63.117)
+# Deploy to Aliyun ECS (39.97.62.60)
 
 When this skill is invoked:
 
@@ -32,8 +32,8 @@ When this skill is invoked:
      ```
    - Copy the project env files to the server:
      ```bash
-     scp -i ~/.ssh/wu.pem .env ecs-user@112.126.63.117:/home/ecs-user/calendar/.env
-     scp -i ~/.ssh/wu.pem .env.local ecs-user@112.126.63.117:/home/ecs-user/calendar/.env.local
+     scp -i ~/.ssh/wu.pem .env ecs-user@39.97.62.60:/home/ecs-user/calendar/.env
+     scp -i ~/.ssh/wu.pem .env.local ecs-user@39.97.62.60:/home/ecs-user/calendar/.env.local
      ```
    - Build locally:
      ```bash
@@ -43,11 +43,11 @@ When this skill is invoked:
      ```bash
      rsync -avz --exclude='.git' --exclude='node_modules' --exclude='public/posters' \
        -e "ssh -i ~/.ssh/wu.pem -o StrictHostKeyChecking=no" \
-       . ecs-user@112.126.63.117:/home/ecs-user/calendar/
+       . ecs-user@39.97.62.60:/home/ecs-user/calendar/
      ```
    - SSH to server and restart with the pre-built output:
      ```bash
-     ssh -i ~/.ssh/wu.pem -o StrictHostKeyChecking=no ecs-user@112.126.63.117 "
+     ssh -i ~/.ssh/wu.pem -o StrictHostKeyChecking=no ecs-user@39.97.62.60 "
        cd /home/ecs-user/calendar &&
        pnpm install --frozen-lockfile &&
        pm2 restart calendar
@@ -64,7 +64,7 @@ When this skill is invoked:
    - Remove any unnecessary files per user's global instructions
 
 ## Server Details
-- **Host**: 112.126.63.117
+- **Host**: 39.97.62.60
 - **User**: ecs-user
 - **SSH Key**: ~/.ssh/wu.pem
 - **App Port**: 5002
