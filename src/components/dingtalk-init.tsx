@@ -12,7 +12,7 @@ declare global {
         corpId: string;
         onSuccess?: (result: { code: string }) => void;
         onFail?: (err: unknown) => void;
-      }) => void;
+      }) => void | Promise<{ code: string }>;
       biz: {
         util: {
           openLink: (options: {
@@ -51,16 +51,23 @@ export function DingTalkInit() {
         ]).then(([config, userRes]) => {
           if (config.ssoEnabled && !userRes.ok && config.corpId) {
             console.log('[DingTalkInit] SSO enabled, user not logged in — requesting auth code');
-            window.dd?.requestAuthCode({
-              corpId: config.corpId,
-              onSuccess: (result) => {
-                console.log('[DingTalkInit] Auth code obtained, redirecting to callback');
-                window.location.href = `/api/auth/callback?code=${result.code}`;
-              },
-              onFail: (err) => {
-                console.error('[DingTalkInit] requestAuthCode failed:', err);
-              },
-            });
+            const ddObj = window.dd;
+            if (!ddObj || typeof ddObj.requestAuthCode !== 'function') {
+              console.warn('[DingTalkInit] requestAuthCode not available in this DingTalk environment');
+              return;
+            }
+            // DingTalk JSAPI 2.x returns a Promise; fall back to callback API for older versions
+            const authResult = ddObj.requestAuthCode({ corpId: config.corpId });
+            if (authResult && typeof (authResult as Promise<{ code: string }>).then === 'function') {
+              (authResult as Promise<{ code: string }>)
+                .then((result) => {
+                  console.log('[DingTalkInit] Auth code obtained, redirecting to callback');
+                  window.location.href = `/api/auth/callback?code=${result.code}`;
+                })
+                .catch((err: unknown) => {
+                  console.error('[DingTalkInit] requestAuthCode failed:', err);
+                });
+            }
           } else {
             console.log('[DingTalkInit] SSO disabled or already logged in, skipping auto-login');
           }
