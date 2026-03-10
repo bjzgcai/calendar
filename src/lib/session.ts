@@ -18,8 +18,8 @@ export const sessionOptions: SessionOptions = {
   password: process.env.SESSION_SECRET || "complex_password_at_least_32_characters_long_for_iron_session_secret",
   cookieName: "dingtalk_session",
   cookieOptions: {
-    // secure 只在 HTTPS 中启用，在开发环境中设置为 false
-    secure: process.env.NODE_ENV === "production",
+    // secure 只在 HTTPS 中启用
+    secure: process.env.SESSION_SECURE === "true",
     httpOnly: true,
     sameSite: "lax",
     maxAge: 60 * 60 * 24 * 7, // 7 天
