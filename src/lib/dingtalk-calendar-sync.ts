@@ -9,8 +9,7 @@ import { events } from "@/storage/database/shared/schema"
 import { eq, and, isNotNull, gte, lte } from "drizzle-orm"
 
 // unionIds of users whose calendars should be synced
-// Default: 吴衍标 (NSh5QJgQ0VyhbXTjkmZbrwiEiE), 邹猛 (z5ZXkpsuOBaqUDTXdWiP4cQiEiE)
-const SYNC_USER_IDS = (process.env.DINGTALK_SYNC_USER_IDS || "NSh5QJgQ0VyhbXTjkmZbrwiEiE,z5ZXkpsuOBaqUDTXdWiP4cQiEiE")
+const SYNC_USER_IDS = (process.env.DINGTALK_SYNC_USER_IDS || "Qfr1meiPqooG1l2jyZ5zOyQiEiE,e5JiPXxELQAEoNpZ50qLsnwiEiE,IgQRc4KPdJXQiPPBOEl3biiQiEiE")
   .split(",")
   .map((id) => id.trim())
   .filter(Boolean)
@@ -131,6 +130,12 @@ async function syncUserEvents(corpAccessToken: string, userId: string): Promise<
 
     // Upsert active events
     for (const dtEvent of activeEvents) {
+      // Only sync events with more than 50 attendees
+      if (!dtEvent.attendees || dtEvent.attendees.length <= 50) {
+        result.skipped++
+        continue
+      }
+
       const mapped = mapDingTalkEvent(dtEvent)
       if (!mapped) {
         result.skipped++
