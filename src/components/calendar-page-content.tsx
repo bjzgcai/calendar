@@ -1,8 +1,8 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { List } from "lucide-react"
+import { List, RefreshCw } from "lucide-react"
 import Image from "next/image"
 import { EventCalendar } from "@/components/event-calendar"
 import { EventListView } from "@/components/event-list-view"
@@ -149,6 +149,34 @@ export function CalendarPageContent() {
     setRefreshKey((prev) => prev + 1)
   }
 
+  // DingTalk calendar sync (every 30s)
+  const [syncStatus, setSyncStatus] = useState<"idle" | "syncing" | "error">("idle")
+  const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null)
+  const syncIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  const runSync = async () => {
+    setSyncStatus("syncing")
+    try {
+      const res = await fetch("/api/dingtalk/sync", { method: "POST" })
+      const data = await res.json()
+      if (data.summary?.created > 0 || data.summary?.updated > 0) {
+        handleRefresh()
+      }
+      setLastSyncTime(new Date())
+      setSyncStatus("idle")
+    } catch {
+      setSyncStatus("error")
+    }
+  }
+
+  useEffect(() => {
+    runSync()
+    syncIntervalRef.current = setInterval(runSync, 30_000)
+    return () => {
+      if (syncIntervalRef.current) clearInterval(syncIntervalRef.current)
+    }
+  }, [])
+
   const handleFormSuccess = () => {
     console.log("=== 表单成功回调触发 ===")
     console.log("关闭表单，刷新日历...")
@@ -260,6 +288,18 @@ export function CalendarPageContent() {
                   点击登录，创建编辑活动
                 </button>
               )}
+              {/* DingTalk sync status indicator */}
+              <button
+                onClick={runSync}
+                disabled={syncStatus === "syncing"}
+                title={lastSyncTime ? `上次同步: ${lastSyncTime.toLocaleTimeString()}` : "同步钉钉日历"}
+                className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
+              >
+                <RefreshCw className={`h-3.5 w-3.5 ${syncStatus === "syncing" ? "animate-spin" : ""} ${syncStatus === "error" ? "text-red-500" : ""}`} />
+                <span className="hidden sm:inline">
+                  {syncStatus === "syncing" ? "同步中…" : syncStatus === "error" ? "同步失败" : "钉钉同步"}
+                </span>
+              </button>
               <UserMenu />
             </div>
           </div>

@@ -278,6 +278,137 @@ export async function getDepartmentList(corpAccessToken: string, deptId?: number
   return data.result;
 }
 
+// ========================
+// Calendar API
+// ========================
+
+export interface DingTalkCalendarEventDateTime {
+  dateTime?: string  // ISO8601, e.g. "2024-01-01T10:00:00+08:00"
+  date?: string      // YYYY-MM-DD for all-day events
+  timeZone?: string
+}
+
+export interface DingTalkCalendarEvent {
+  id: string
+  calendarId: string
+  summary: string
+  description?: string
+  location?: string
+  start: DingTalkCalendarEventDateTime
+  end: DingTalkCalendarEventDateTime
+  isAllDay?: boolean
+  status?: string  // "confirmed" | "cancelled"
+  organizer?: { id: string; displayName: string; self?: boolean }
+  attendees?: Array<{ id: string; displayName: string; self?: boolean; responseStatus?: string }>
+  createTime?: string
+  updateTime?: string
+  recurrence?: string[]
+}
+
+export interface DingTalkCalendarEventsResult {
+  events: DingTalkCalendarEvent[]
+  nextPageToken?: string
+  nextSyncToken?: string
+}
+
+/**
+ * 通过企业 corp access token + 员工 staffId 获取用户的 openId
+ */
+export async function getUserOpenIdByStaffId(corpAccessToken: string, staffId: string): Promise<string> {
+  const response = await fetch(`${DINGTALK_API_BASE}/v1.0/contact/users/${staffId}`, {
+    method: "GET",
+    headers: {
+      "x-acs-dingtalk-access-token": corpAccessToken,
+    },
+  })
+
+  if (!response.ok) {
+    const error = await response.text()
+    throw new Error(`Failed to get user by staffId ${staffId}: ${error}`)
+  }
+
+  const data = await response.json()
+  const openId = data.openId || data.result?.openId
+  if (!openId) {
+    throw new Error(`No openId found for staffId ${staffId}: ${JSON.stringify(data)}`)
+  }
+  return openId
+}
+
+/**
+ * 获取用户日历事件列表
+ * @param accessToken 用户访问令牌或企业访问令牌
+ * @param userId 用户 openId（使用用户自己的令牌时可传 "me"）
+ * @param calendarId 日历 ID，默认 "primary"
+ * @param options 查询选项
+ */
+export async function getUserCalendarEvents(
+  accessToken: string,
+  userId: string,
+  calendarId: string = "primary",
+  options: {
+    timeMin?: string   // ISO8601
+    timeMax?: string   // ISO8601
+    pageToken?: string
+    maxResults?: number
+    syncToken?: string
+  } = {}
+): Promise<DingTalkCalendarEventsResult> {
+  const params = new URLSearchParams()
+  if (options.timeMin) params.set("timeMin", options.timeMin)
+  if (options.timeMax) params.set("timeMax", options.timeMax)
+  if (options.pageToken) params.set("pageToken", options.pageToken)
+  if (options.maxResults) params.set("maxResults", String(options.maxResults))
+  if (options.syncToken) params.set("syncToken", options.syncToken)
+
+  const url = `${DINGTALK_API_BASE}/v1.0/calendar/users/${userId}/calendars/${calendarId}/events?${params.toString()}`
+
+  const response = await fetch(url, {
+    method: "GET",
+    headers: {
+      "x-acs-dingtalk-access-token": accessToken,
+      "Content-Type": "application/json",
+    },
+  })
+
+  if (!response.ok) {
+    const error = await response.text()
+    throw new Error(`Failed to get calendar events for user ${userId}: ${error}`)
+  }
+
+  const data = await response.json()
+  return {
+    events: data.events || [],
+    nextPageToken: data.nextPageToken,
+    nextSyncToken: data.nextSyncToken,
+  }
+}
+
+/**
+ * 分页获取用户所有日历事件（自动翻页）
+ */
+export async function getAllUserCalendarEvents(
+  accessToken: string,
+  userId: string,
+  options: { timeMin?: string; timeMax?: string; calendarId?: string } = {}
+): Promise<DingTalkCalendarEvent[]> {
+  const { calendarId = "primary", ...queryOptions } = options
+  const allEvents: DingTalkCalendarEvent[] = []
+  let pageToken: string | undefined
+
+  do {
+    const result = await getUserCalendarEvents(accessToken, userId, calendarId, {
+      ...queryOptions,
+      maxResults: 50,
+      pageToken,
+    })
+    allEvents.push(...result.events)
+    pageToken = result.nextPageToken
+  } while (pageToken)
+
+  return allEvents
+}
+
 /**
  * 获取整个组织的所有用户（递归获取所有部门）
  */

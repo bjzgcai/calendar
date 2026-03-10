@@ -191,6 +191,20 @@ export function EventCalendar({ onEventClick, onTimeSlotSelect, onViewChange, cu
     onViewChange?.(info.view.type)
   }
 
+  const handleEventContent = (arg: any) => {
+    const { event, view, timeText } = arg
+    // Only customize time grid views (week/day)
+    if (view.type !== 'timeGridWeek' && view.type !== 'timeGridDay') {
+      return undefined
+    }
+    return (
+      <div className="fc-event-main-custom">
+        <div className="fc-event-title-custom">{event.title}</div>
+        {timeText && <div className="fc-event-time-custom">{timeText}</div>}
+      </div>
+    )
+  }
+
   const handleEventDidMount = (info: any) => {
     const event = info.event
     const startTime = event.start
@@ -516,6 +530,7 @@ export function EventCalendar({ onEventClick, onTimeSlotSelect, onViewChange, cu
         }}
         events={events}
         eventClick={handleEventClick}
+        eventContent={handleEventContent}
         eventDidMount={handleEventDidMount}
         dayCellDidMount={handleDayCellDidMount}
         moreLinkDidMount={handleMoreLinkDidMount}

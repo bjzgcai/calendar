@@ -65,6 +65,7 @@ export const events = pgTable("events", {
   approximateMonth: varchar("approximate_month", { length: 7 }), // YYYY-MM 格式，用于存储月份待定的事件
   requiredAttendees: text("required_attendees"), // 必须到场的人（JSON数组：[{userid, name}]）
   creatorId: integer("creator_id").references(() => users.id), // 创建者用户 ID（外键关联 users 表）
+  dingtalkEventId: varchar("dingtalk_event_id", { length: 255 }).unique(), // DingTalk 日历事件 ID（用于去重）
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 })
