@@ -169,6 +169,7 @@ async function syncUserEvents(corpAccessToken: string, userId: string): Promise<
         // (e.g. event exists in DB outside current time-window query)
         await db.insert(events).values({
           ...mapped,
+          organizer: "",
           tags: "",
           dingtalkEventId: dtEvent.id,
           recurrenceRule: "none",
