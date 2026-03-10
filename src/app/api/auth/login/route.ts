@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const redirectUri = "http://112.126.63.117:5002/api/auth/callback";
+  const redirectUri = "http://39.97.62.60:5002/api/auth/callback";
 
   // 生成随机 state 用于防止 CSRF 攻击
   const state = Math.random().toString(36).substring(7);

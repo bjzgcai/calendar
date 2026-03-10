@@ -22,7 +22,7 @@ NC='\033[0m' # No Color
 
 # Configuration
 REMOTE_USER="ecs-user"
-REMOTE_HOST="112.126.63.117"
+REMOTE_HOST="39.97.62.60"
 REMOTE_SSH_KEY="$HOME/.ssh/wu.pem"
 REMOTE_PROJECT_DIR="/home/ecs-user/calendar"
 APP_PORT=5002
