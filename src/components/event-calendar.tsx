@@ -193,16 +193,23 @@ export function EventCalendar({ onEventClick, onTimeSlotSelect, onViewChange, cu
 
   const handleEventContent = (arg: any) => {
     const { event, view, timeText } = arg
-    // Only customize time grid views (week/day)
-    if (view.type !== 'timeGridWeek' && view.type !== 'timeGridDay') {
-      return undefined
+
+    if (view.type === 'timeGridWeek' || view.type === 'timeGridDay') {
+      return (
+        <div className="fc-event-main-custom">
+          <div className="fc-event-title-custom">{event.title}</div>
+          {timeText && <div className="fc-event-time-custom">{timeText}</div>}
+        </div>
+      )
     }
-    return (
-      <div className="fc-event-main-custom">
-        <div className="fc-event-title-custom">{event.title}</div>
-        {timeText && <div className="fc-event-time-custom">{timeText}</div>}
-      </div>
-    )
+
+    // For dayGridMonth: return explicit title — returning undefined suppresses
+    // all content in FullCalendar's React integration (events show but are empty)
+    if (view.type === 'dayGridMonth') {
+      return <span className="fc-event-title fc-sticky">{event.title}</span>
+    }
+
+    return undefined
   }
 
   const handleEventDidMount = (info: any) => {
@@ -563,6 +570,7 @@ export function EventCalendar({ onEventClick, onTimeSlotSelect, onViewChange, cu
           year: "numeric",
           day: "numeric",
         }}
+        eventDisplay="block"
         views={{
           timeGridDay: {
             titleFormat: { year: "numeric", month: "long", day: "numeric" },
