@@ -6,7 +6,7 @@
 import { getCorpAccessToken, getAllUserCalendarEvents, DingTalkCalendarEvent } from "./dingtalk"
 import { getDirectDb } from "./db"
 import { events } from "@/storage/database/shared/schema"
-import { eq } from "drizzle-orm"
+import { eq, and, isNotNull, gte, lte } from "drizzle-orm"
 
 // unionIds of users whose calendars should be synced
 // Default: 吴衍标 (NSh5QJgQ0VyhbXTjkmZbrwiEiE), 邹猛 (z5ZXkpsuOBaqUDTXdWiP4cQiEiE)
@@ -19,17 +19,16 @@ export interface SyncResult {
   userId: string
   created: number
   updated: number
+  deleted: number
   skipped: number
   error?: string
 }
 
 /**
  * Convert a DingTalk calendar event to our event DB record format.
- * Returns null if the event should be skipped (e.g. cancelled).
+ * Returns null if the event should be skipped (all-day parse failure, missing times).
  */
-function mapDingTalkEvent(dtEvent: DingTalkCalendarEvent, creatorOpenId: string) {
-  if (dtEvent.status === "cancelled") return null
-
+function mapDingTalkEvent(dtEvent: DingTalkCalendarEvent) {
   // Parse start time
   let startTime: Date
   let endTime: Date
@@ -37,7 +36,6 @@ function mapDingTalkEvent(dtEvent: DingTalkCalendarEvent, creatorOpenId: string)
   if (dtEvent.start.dateTime) {
     startTime = new Date(dtEvent.start.dateTime)
   } else if (dtEvent.start.date) {
-    // All-day event: use midnight local time
     startTime = new Date(`${dtEvent.start.date}T00:00:00+08:00`)
   } else {
     return null
@@ -60,23 +58,21 @@ function mapDingTalkEvent(dtEvent: DingTalkCalendarEvent, creatorOpenId: string)
     location: dtEvent.location || null,
     startTime,
     endTime,
-    tags: "",
-    dingtalkEventId: dtEvent.id,
   }
 }
 
 /**
  * Sync calendar events for a single DingTalk user (by unionId).
+ * - Fetches events from past 30 days → next 365 days
+ * - Creates new events, updates changed events, deletes removed/cancelled events
  */
 async function syncUserEvents(corpAccessToken: string, userId: string): Promise<SyncResult> {
-  const result: SyncResult = { userId, created: 0, updated: 0, skipped: 0 }
+  const result: SyncResult = { userId, created: 0, updated: 0, deleted: 0, skipped: 0 }
 
   try {
-    // 1. Fetch events for the next 90 days (and past 30 days)
     const timeMin = new Date()
-    timeMin.setDate(timeMin.getDate() - 30)
     const timeMax = new Date()
-    timeMax.setDate(timeMax.getDate() + 90)
+    timeMax.setDate(timeMax.getDate() + 5)
 
     const dtEvents = await getAllUserCalendarEvents(corpAccessToken, userId, {
       timeMin: timeMin.toISOString(),
@@ -85,46 +81,107 @@ async function syncUserEvents(corpAccessToken: string, userId: string): Promise<
 
     const db = getDirectDb()
 
+    // Partition: active vs cancelled events from DingTalk
+    const activeEvents: DingTalkCalendarEvent[] = []
+    const cancelledIds = new Set<string>()
+
     for (const dtEvent of dtEvents) {
-      const mapped = mapDingTalkEvent(dtEvent, userId)
+      if (dtEvent.status === "cancelled") {
+        cancelledIds.add(dtEvent.id)
+      } else {
+        activeEvents.push(dtEvent)
+      }
+    }
+
+    // Build set of active DingTalk event IDs returned in this sync window
+    const activeDtIds = new Set(activeEvents.map((e) => e.id))
+
+    // Fetch all DB events with a dingtalkEventId within the sync time window
+    const dbEvents = await db
+      .select({ id: events.id, dingtalkEventId: events.dingtalkEventId, title: events.title, content: events.content, location: events.location, startTime: events.startTime, endTime: events.endTime })
+      .from(events)
+      .where(
+        and(
+          isNotNull(events.dingtalkEventId),
+          gte(events.startTime, timeMin),
+          lte(events.startTime, timeMax)
+        )
+      )
+
+    const dbEventByDtId = new Map(dbEvents.map((e) => [e.dingtalkEventId!, e]))
+
+    // Delete events that are cancelled or no longer returned by DingTalk
+    for (const dbEvent of dbEvents) {
+      const dtId = dbEvent.dingtalkEventId!
+      if (cancelledIds.has(dtId) || !activeDtIds.has(dtId)) {
+        await db.delete(events).where(eq(events.dingtalkEventId, dtId))
+        result.deleted++
+      }
+    }
+
+    // Upsert active events
+    for (const dtEvent of activeEvents) {
+      const mapped = mapDingTalkEvent(dtEvent)
       if (!mapped) {
         result.skipped++
         continue
       }
 
-      // 3. Check if event already exists by dingtalkEventId
-      const existing = await db
-        .select({ id: events.id })
-        .from(events)
-        .where(eq(events.dingtalkEventId, dtEvent.id))
-        .limit(1)
+      const existing = dbEventByDtId.get(dtEvent.id)
 
-      if (existing.length > 0) {
-        // Update if changed
-        await db
-          .update(events)
-          .set({
+      if (existing) {
+        // Detect actual changes before updating
+        const changed =
+          existing.title !== mapped.title ||
+          existing.content !== mapped.content ||
+          existing.location !== (mapped.location ?? null) ||
+          existing.startTime.getTime() !== mapped.startTime.getTime() ||
+          existing.endTime.getTime() !== mapped.endTime.getTime()
+
+        if (changed) {
+          await db
+            .update(events)
+            .set({
+              title: mapped.title,
+              content: mapped.content,
+              location: mapped.location,
+              startTime: mapped.startTime,
+              endTime: mapped.endTime,
+              updatedAt: new Date(),
+            })
+            .where(eq(events.dingtalkEventId, dtEvent.id))
+          result.updated++
+        } else {
+          result.skipped++
+        }
+      } else {
+        // Create new event; onConflictDoUpdate handles duplicate dingtalkEventId
+        // (e.g. event exists in DB outside current time-window query)
+        await db.insert(events).values({
+          ...mapped,
+          tags: "",
+          dingtalkEventId: dtEvent.id,
+          recurrenceRule: "none",
+          datePrecision: "exact",
+        }).onConflictDoUpdate({
+          target: events.dingtalkEventId,
+          set: {
             title: mapped.title,
             content: mapped.content,
             location: mapped.location,
             startTime: mapped.startTime,
             endTime: mapped.endTime,
             updatedAt: new Date(),
-          })
-          .where(eq(events.dingtalkEventId, dtEvent.id))
-        result.updated++
-      } else {
-        // Create new event
-        await db.insert(events).values({
-          ...mapped,
-          recurrenceRule: "none",
-          datePrecision: "exact",
+          },
         })
         result.created++
       }
     }
   } catch (err) {
-    result.error = err instanceof Error ? err.message : String(err)
+    const cause = err instanceof Error && (err as Error & { cause?: unknown }).cause
+    result.error = err instanceof Error
+      ? `${err.message}${cause ? `\ncause: ${String(cause)}` : ""}`
+      : String(err)
   }
 
   return result
