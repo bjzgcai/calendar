@@ -149,17 +149,19 @@ export function CalendarPageContent() {
     setRefreshKey((prev) => prev + 1)
   }
 
-  // DingTalk calendar sync (every 30s)
+  // DingTalk calendar sync
   const [syncStatus, setSyncStatus] = useState<"idle" | "syncing" | "error">("idle")
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null)
   const syncIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  const runSync = async () => {
+  // manual=true: triggered by button click, refreshes UI on changes
+  // manual=false: background sync, never refreshes UI
+  const runSync = async (manual = false) => {
     setSyncStatus("syncing")
     try {
       const res = await fetch("/api/dingtalk/sync", { method: "POST" })
       const data = await res.json()
-      if (data.summary?.created > 0 || data.summary?.updated > 0) {
+      if (manual && (data.summary?.created > 0 || data.summary?.updated > 0 || data.summary?.deleted > 0)) {
         handleRefresh()
       }
       setLastSyncTime(new Date())
@@ -170,8 +172,9 @@ export function CalendarPageContent() {
   }
 
   useEffect(() => {
-    runSync()
-    syncIntervalRef.current = setInterval(runSync, 30_000)
+    // Initial background sync on mount, then every 30 minutes — never refreshes UI
+    runSync(false)
+    syncIntervalRef.current = setInterval(() => runSync(false), 30 * 60 * 1000)
     return () => {
       if (syncIntervalRef.current) clearInterval(syncIntervalRef.current)
     }
@@ -290,7 +293,7 @@ export function CalendarPageContent() {
               )}
               {/* DingTalk sync status indicator */}
               <button
-                onClick={runSync}
+                onClick={() => runSync(true)}
                 disabled={syncStatus === "syncing"}
                 title={lastSyncTime ? `上次同步: ${lastSyncTime.toLocaleTimeString()}` : "同步钉钉日历"}
                 className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
