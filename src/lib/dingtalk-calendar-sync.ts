@@ -52,10 +52,20 @@ function mapDingTalkEvent(dtEvent: DingTalkCalendarEvent) {
     return null
   }
 
+  // DingTalk API may return location as an object despite the type saying string
+  const rawLocation = dtEvent.location as unknown
+  const location =
+    typeof rawLocation === "string" ? rawLocation || null
+    : rawLocation && typeof rawLocation === "object"
+      ? (rawLocation as { displayName?: string; title?: string }).displayName ||
+        (rawLocation as { displayName?: string; title?: string }).title ||
+        null
+      : null
+
   return {
     title: dtEvent.summary || "(无标题)",
-    content: dtEvent.description || null,
-    location: dtEvent.location || null,
+    content: dtEvent.description || "",  // NOT NULL in DB
+    location,
     startTime,
     endTime,
   }
