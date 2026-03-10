@@ -3,20 +3,20 @@
  * Syncs calendar events from specified DingTalk users into the local calendar.
  */
 
-import { getCorpAccessToken, getUserOpenIdByStaffId, getAllUserCalendarEvents, DingTalkCalendarEvent } from "./dingtalk"
+import { getCorpAccessToken, getAllUserCalendarEvents, DingTalkCalendarEvent } from "./dingtalk"
 import { getDirectDb } from "./db"
 import { events } from "@/storage/database/shared/schema"
 import { eq } from "drizzle-orm"
 
-// Staff IDs of users whose calendars should be synced
-const SYNC_STAFF_IDS = (process.env.DINGTALK_SYNC_USER_IDS || "200079,200164")
+// unionIds of users whose calendars should be synced
+// Default: 吴衍标 (NSh5QJgQ0VyhbXTjkmZbrwiEiE), 邹猛 (z5ZXkpsuOBaqUDTXdWiP4cQiEiE)
+const SYNC_USER_IDS = (process.env.DINGTALK_SYNC_USER_IDS || "NSh5QJgQ0VyhbXTjkmZbrwiEiE,z5ZXkpsuOBaqUDTXdWiP4cQiEiE")
   .split(",")
   .map((id) => id.trim())
   .filter(Boolean)
 
 export interface SyncResult {
-  staffId: string
-  openId?: string
+  userId: string
   created: number
   updated: number
   skipped: number
@@ -66,23 +66,19 @@ function mapDingTalkEvent(dtEvent: DingTalkCalendarEvent, creatorOpenId: string)
 }
 
 /**
- * Sync calendar events for a single DingTalk user (by staff ID).
+ * Sync calendar events for a single DingTalk user (by unionId).
  */
-async function syncUserEvents(corpAccessToken: string, staffId: string): Promise<SyncResult> {
-  const result: SyncResult = { staffId, created: 0, updated: 0, skipped: 0 }
+async function syncUserEvents(corpAccessToken: string, userId: string): Promise<SyncResult> {
+  const result: SyncResult = { userId, created: 0, updated: 0, skipped: 0 }
 
   try {
-    // 1. Resolve openId from staff ID
-    const openId = await getUserOpenIdByStaffId(corpAccessToken, staffId)
-    result.openId = openId
-
-    // 2. Fetch events for the next 90 days (and past 30 days)
+    // 1. Fetch events for the next 90 days (and past 30 days)
     const timeMin = new Date()
     timeMin.setDate(timeMin.getDate() - 30)
     const timeMax = new Date()
     timeMax.setDate(timeMax.getDate() + 90)
 
-    const dtEvents = await getAllUserCalendarEvents(corpAccessToken, openId, {
+    const dtEvents = await getAllUserCalendarEvents(corpAccessToken, userId, {
       timeMin: timeMin.toISOString(),
       timeMax: timeMax.toISOString(),
     })
@@ -90,7 +86,7 @@ async function syncUserEvents(corpAccessToken: string, staffId: string): Promise
     const db = getDirectDb()
 
     for (const dtEvent of dtEvents) {
-      const mapped = mapDingTalkEvent(dtEvent, openId)
+      const mapped = mapDingTalkEvent(dtEvent, userId)
       if (!mapped) {
         result.skipped++
         continue
@@ -140,7 +136,7 @@ async function syncUserEvents(corpAccessToken: string, staffId: string): Promise
 export async function syncDingTalkCalendar(): Promise<SyncResult[]> {
   const corpAccessToken = await getCorpAccessToken()
   const results = await Promise.all(
-    SYNC_STAFF_IDS.map((staffId) => syncUserEvents(corpAccessToken, staffId))
+    SYNC_USER_IDS.map((userId) => syncUserEvents(corpAccessToken, userId))
   )
   return results
 }
