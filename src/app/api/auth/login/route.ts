@@ -10,11 +10,7 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // 获取当前应用的 URL 来构建回调地址
-  // Use APP_PROTOCOL env var to avoid forcing https when server runs plain HTTP
-  const protocol = process.env.APP_PROTOCOL || "http";
-  const host = request.headers.get("host") || "localhost:5002";
-  const redirectUri = `${protocol}://${host}/api/auth/callback`;
+  const redirectUri = "http://112.126.63.117:5002/api/auth/callback";
 
   // 生成随机 state 用于防止 CSRF 攻击
   const state = Math.random().toString(36).substring(7);
