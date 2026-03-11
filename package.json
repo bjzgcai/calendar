@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build": "next build",
+    "build": "NEXT_PUBLIC_BUILD_TIME=$(TZ=Asia/Shanghai date +\"%Y-%m-%d %H:%M:%S\") next build",
     "dev": "node scripts/dev-with-port.js",
     "preinstall": "npx only-allow pnpm",
     "lint": "eslint",

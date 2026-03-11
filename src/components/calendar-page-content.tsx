@@ -396,6 +396,14 @@ export function CalendarPageContent() {
           onSuccess={handleRefresh}
         />
       </div>
+
+      {/* Footer */}
+      <div className="text-center py-4 text-xs text-gray-400 dark:text-gray-600">
+        © 中关村学院
+        {process.env.NEXT_PUBLIC_BUILD_TIME && (
+          <span className="ml-2">· 版本时间 {process.env.NEXT_PUBLIC_BUILD_TIME}</span>
+        )}
+      </div>
     </div>
   )
 }
