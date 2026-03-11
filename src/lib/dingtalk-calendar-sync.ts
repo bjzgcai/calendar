@@ -9,18 +9,9 @@ import { events } from "@/storage/database/shared/schema"
 import { eq, and, isNotNull, gte, lte } from "drizzle-orm"
 
 // unionIds of users whose calendars should be synced
-const DEFAULT_SYNC_USER_IDS = "Qfr1meiPqooG1l2jyZ5zOyQiEiE,e5JiPXxELQAEoNpZ50qLsnwiEiE,IgQRc4KPdJXQiPPBOEl3biiQiEiE"
-const SYNC_USER_IDS = (process.env.DINGTALK_SYNC_USER_IDS || DEFAULT_SYNC_USER_IDS)
-  .split(",")
-  .map((id) => id.trim())
-  .filter(Boolean)
+import { SYNC_USER_IDS } from "./sync-config"
+export { SYNC_USER_NAMES } from "./sync-config"
 
-// Display name mapping for sync users
-const SYNC_USER_NAMES: Record<string, string> = {
-  "Qfr1meiPqooG1l2jyZ5zOyQiEiE": "钟泱榆",
-  "e5JiPXxELQAEoNpZ50qLsnwiEiE": "杨阳",
-  "IgQRc4KPdJXQiPPBOEl3biiQiEiE": "曹丽娜",
-}
 
 export interface SyncResult {
   userId: string
@@ -89,7 +80,7 @@ async function syncUserEvents(corpAccessToken: string, userId: string): Promise<
   try {
     const timeMin = new Date()
     const timeMax = new Date()
-    timeMax.setDate(timeMax.getDate() + 5)
+    timeMax.setDate(timeMax.getDate() + 365)
 
     const dtEvents = await getAllUserCalendarEvents(corpAccessToken, userId, {
       timeMin: timeMin.toISOString(),

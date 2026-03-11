@@ -14,6 +14,8 @@ import { EventFilter } from "@/components/event-filter"
 import { UserMenu } from "@/components/user-menu"
 import { CalendarEvent } from "@/types/calendar"
 import { Button } from "@/components/ui/button"
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
+import { SYNC_USER_DISPLAY_NAMES } from "@/lib/sync-config"
 import { useAuth } from "@/contexts/auth-context"
 
 type ViewMode = "year" | "month" | "week" | "day" | "list"
@@ -292,17 +294,24 @@ export function CalendarPageContent() {
                 </button>
               )}
               {/* DingTalk sync status indicator */}
-              <button
-                onClick={() => runSync(true)}
-                disabled={syncStatus === "syncing"}
-                title={lastSyncTime ? `上次同步: ${lastSyncTime.toLocaleTimeString()}` : "同步钉钉日历"}
-                className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
-              >
-                <RefreshCw className={`h-3.5 w-3.5 ${syncStatus === "syncing" ? "animate-spin" : ""} ${syncStatus === "error" ? "text-red-500" : ""}`} />
-                <span className="hidden sm:inline">
-                  {syncStatus === "syncing" ? "同步中…" : syncStatus === "error" ? "同步失败" : "钉钉同步"}
-                </span>
-              </button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => runSync(true)}
+                    disabled={syncStatus === "syncing"}
+                    title={lastSyncTime ? `上次同步: ${lastSyncTime.toLocaleTimeString()}` : "同步钉钉日历"}
+                    className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
+                  >
+                    <RefreshCw className={`h-3.5 w-3.5 ${syncStatus === "syncing" ? "animate-spin" : ""} ${syncStatus === "error" ? "text-red-500" : ""}`} />
+                    <span className="hidden sm:inline">
+                      {syncStatus === "syncing" ? "同步中…" : syncStatus === "error" ? "同步失败" : "钉钉同步"}
+                    </span>
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  同步{SYNC_USER_DISPLAY_NAMES}接下来一年的公共活动（人数大于50）
+                </TooltipContent>
+              </Tooltip>
               {/* Mobile filter button - inline in header */}
               <div className="lg:hidden">
                 <EventFilter
