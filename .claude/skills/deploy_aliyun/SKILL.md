@@ -50,6 +50,7 @@ When this skill is invoked:
      ssh -i ~/.ssh/wu.pem -o StrictHostKeyChecking=no ecs-user@39.97.62.60 "
        cd /home/ecs-user/calendar &&
        pnpm install --frozen-lockfile &&
+       pnpm exec drizzle-kit migrate &&
        pm2 restart calendar
      "
      ```
