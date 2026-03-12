@@ -1,6 +1,6 @@
 import { eq, and, SQL, gte, lte, like, isNull, or, sql } from "drizzle-orm";
 import { getDirectDb } from "@/lib/db";
-import { events, insertEventWithCoercionSchema, updateEventWithCoercionSchema } from "./shared/schema";
+import { events, dingtalkDeletedEvents, insertEventWithCoercionSchema, updateEventWithCoercionSchema } from "./shared/schema";
 import type { Event, InsertEvent, UpdateEvent, EventType } from "./shared/schema";
 
 export class EventManager {
@@ -95,6 +95,11 @@ export class EventManager {
 
   async deleteEvent(id: number): Promise<boolean> {
     const db = getDirectDb();
+    // If this is a DingTalk-synced event, add it to the blocklist so it won't be re-created on next sync
+    const [event] = await db.select({ dingtalkEventId: events.dingtalkEventId }).from(events).where(eq(events.id, id));
+    if (event?.dingtalkEventId) {
+      await db.insert(dingtalkDeletedEvents).values({ dingtalkEventId: event.dingtalkEventId }).onConflictDoNothing();
+    }
     const result = await db.delete(events).where(eq(events.id, id));
     return (result.rowCount ?? 0) > 0;
   }

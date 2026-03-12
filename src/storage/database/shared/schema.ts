@@ -70,6 +70,12 @@ export const events = pgTable("events", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 })
 
+// Blocklist for manually-deleted DingTalk sync events — prevents re-creation on next sync
+export const dingtalkDeletedEvents = pgTable("dingtalk_deleted_events", {
+  dingtalkEventId: varchar("dingtalk_event_id", { length: 255 }).primaryKey(),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }).notNull().defaultNow(),
+})
+
 // 使用 createSchemaFactory 配置 date coercion（处理前端 string → Date 转换）
 const { createInsertSchema: createCoercedInsertSchema, createSelectSchema: createCoercedSelectSchema } = createSchemaFactory({
   coerce: { date: true },

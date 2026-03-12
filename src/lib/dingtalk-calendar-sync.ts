@@ -5,7 +5,7 @@
 
 import { getCorpAccessToken, getAllUserCalendarEvents, DingTalkCalendarEvent } from "./dingtalk"
 import { getDirectDb } from "./db"
-import { events } from "@/storage/database/shared/schema"
+import { events, dingtalkDeletedEvents } from "@/storage/database/shared/schema"
 import { eq, and, isNotNull, gte, lte } from "drizzle-orm"
 
 // unionIds of users whose calendars should be synced
@@ -89,6 +89,10 @@ async function syncUserEvents(corpAccessToken: string, userId: string): Promise<
 
     const db = getDirectDb()
 
+    // Load blocklist of manually-deleted DingTalk events
+    const deletedRows = await db.select({ dingtalkEventId: dingtalkDeletedEvents.dingtalkEventId }).from(dingtalkDeletedEvents)
+    const deletedBlocklist = new Set(deletedRows.map((r) => r.dingtalkEventId))
+
     // Partition: active vs cancelled events from DingTalk
     const activeEvents: DingTalkCalendarEvent[] = []
     const cancelledIds = new Set<string>()
@@ -131,6 +135,11 @@ async function syncUserEvents(corpAccessToken: string, userId: string): Promise<
     for (const dtEvent of activeEvents) {
       // Only sync events with more than 50 attendees
       if (!dtEvent.attendees || dtEvent.attendees.length <= 50) {
+        result.skipped++
+        continue
+      }
+
+      if (deletedBlocklist.has(dtEvent.id)) {
         result.skipped++
         continue
       }
