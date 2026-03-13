@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Filter, X, Search, Tag, Info } from "lucide-react"
+import { Filter, X, Search, Tag, Info, Loader2, ImageIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -16,6 +16,15 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { PosterModal } from "@/components/poster-modal"
+import { useAuth } from "@/contexts/auth-context"
 
 interface TagWithCount {
   name: string
@@ -27,9 +36,17 @@ interface EventFilterProps {
   onOrganizerChange: (organizer: string | string[] | undefined) => void
   onTagsChange: (tags: string[]) => void
   onMyEventsChange: (myEvents: boolean) => void
+  viewStartDate?: Date
+  viewEndDate?: Date
 }
 
-export function EventFilter({ onEventTypeChange, onOrganizerChange, onTagsChange, onMyEventsChange }: EventFilterProps) {
+type PosterStyle = "活泼" | "严肃" | "极客" | "科技"
+
+export function EventFilter({ onEventTypeChange, onOrganizerChange, onTagsChange, onMyEventsChange, viewStartDate, viewEndDate }: EventFilterProps) {
+  const { user, ssoEnabled } = useAuth()
+  const canEdit = !ssoEnabled || !!user
+  const canGeneratePoster = canEdit || process.env.NODE_ENV === "development"
+
   const [tags, setTags] = useState<TagWithCount[]>([])
   const [selectedEventType, setSelectedEventType] = useState<string[] | undefined>(undefined)
   const [selectedOrganizer, setSelectedOrganizer] = useState<string[] | undefined>(undefined)
@@ -39,6 +56,39 @@ export function EventFilter({ onEventTypeChange, onOrganizerChange, onTagsChange
   const [showAllTags, setShowAllTags] = useState<boolean>(false)
   const isMobile = !useMediaQuery("(min-width: 1024px)")
   const [isOpen, setIsOpen] = useState(false)
+
+  // Poster generation state
+  const [posterStyle, setPosterStyle] = useState<PosterStyle>("活泼")
+  const [isPosterLoading, setIsPosterLoading] = useState(false)
+  const [posterSvg, setPosterSvg] = useState<string>("")
+  const [posterModalOpen, setPosterModalOpen] = useState(false)
+
+  const handleGeneratePoster = async () => {
+    setIsPosterLoading(true)
+    try {
+      const response = await fetch("/api/generate-poster", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          style: posterStyle,
+          eventTypeFilter: selectedEventType?.join(",") || undefined,
+          organizerFilter: selectedOrganizer?.join(",") || undefined,
+          tagsFilter: selectedTags.length > 0 ? selectedTags : undefined,
+          startDate: viewStartDate?.toISOString(),
+          endDate: viewEndDate?.toISOString(),
+        }),
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || "生成失败")
+      setPosterSvg(data.svg)
+      setPosterModalOpen(true)
+    } catch (error) {
+      console.error("生成海报失败:", error)
+      alert(error instanceof Error ? error.message : "生成海报失败，请重试")
+    } finally {
+      setIsPosterLoading(false)
+    }
+  }
 
   // 活动类型选项（根据 EVENT_TYPE_COLORS 生成）
   const eventTypeOptions = Object.entries(EVENT_TYPE_COLORS).map(([value, config]) => ({
@@ -170,6 +220,40 @@ export function EventFilter({ onEventTypeChange, onOrganizerChange, onTagsChange
         {/* 筛选面板 */}
         <Card className="fixed top-0 left-0 right-0 bottom-0 z-50 rounded-none overflow-y-auto">
           <CardContent className="pt-6">
+            {/* 生成海报区域 - 移动端 */}
+            {canGeneratePoster && (
+              <div className="mb-4 pb-4 border-b space-y-2">
+                <div className="flex items-center gap-2">
+                  <Select value={posterStyle} onValueChange={(v) => setPosterStyle(v as PosterStyle)}>
+                    <SelectTrigger className="h-8 text-xs flex-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="活泼">活泼</SelectItem>
+                      <SelectItem value="严肃">严肃</SelectItem>
+                      <SelectItem value="极客">极客</SelectItem>
+                      <SelectItem value="科技">科技</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 gap-1.5 flex-shrink-0"
+                    onClick={handleGeneratePoster}
+                    disabled={isPosterLoading}
+                    title="根据当前展示事件, AI生成海报"
+                  >
+                    {isPosterLoading ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <ImageIcon className="h-3.5 w-3.5" />
+                    )}
+                    生成海报
+                  </Button>
+                </div>
+              </div>
+            )}
+
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <Filter className="h-4 w-4" />
@@ -382,14 +466,63 @@ export function EventFilter({ onEventTypeChange, onOrganizerChange, onTagsChange
         )}
       </CardContent>
     </Card>
+
+    <PosterModal
+      open={posterModalOpen}
+      onOpenChange={setPosterModalOpen}
+      svgContent={posterSvg}
+    />
       </>
     )
   }
 
   // 桌面端：普通卡片显示
   return (
+    <>
     <Card>
       <CardContent className="pt-6">
+        {/* 生成海报区域 */}
+        {canGeneratePoster && (
+          <div className="mb-4 pb-4 border-b space-y-2">
+            <div className="flex items-center gap-2">
+              <Select value={posterStyle} onValueChange={(v) => setPosterStyle(v as PosterStyle)}>
+                <SelectTrigger className="h-8 text-xs flex-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="活泼">活泼</SelectItem>
+                  <SelectItem value="严肃">严肃</SelectItem>
+                  <SelectItem value="极客">极客</SelectItem>
+                  <SelectItem value="科技">科技</SelectItem>
+                </SelectContent>
+              </Select>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 gap-1.5 flex-shrink-0"
+                      onClick={handleGeneratePoster}
+                      disabled={isPosterLoading}
+                    >
+                      {isPosterLoading ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <ImageIcon className="h-3.5 w-3.5" />
+                      )}
+                      生成海报
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">
+                    根据当前展示事件, AI生成海报
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+          </div>
+        )}
+
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <Filter className="h-4 w-4" />
@@ -585,5 +718,12 @@ export function EventFilter({ onEventTypeChange, onOrganizerChange, onTagsChange
         </div>
       </CardContent>
     </Card>
+
+    <PosterModal
+      open={posterModalOpen}
+      onOpenChange={setPosterModalOpen}
+      svgContent={posterSvg}
+    />
+    </>
   )
 }

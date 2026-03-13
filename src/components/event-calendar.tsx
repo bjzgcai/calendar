@@ -27,6 +27,7 @@ interface EventCalendarProps {
   onEventClick?: (event: CalendarEvent) => void
   onTimeSlotSelect?: (start: Date, end: Date) => void
   onViewChange?: (view: string) => void
+  onViewDatesChange?: (start: Date, end: Date) => void
   currentView?: string
   initialDate?: Date
   eventTypeFilter?: string | string[]
@@ -35,7 +36,7 @@ interface EventCalendarProps {
   myEventsFilter?: boolean
 }
 
-export function EventCalendar({ onEventClick, onTimeSlotSelect, onViewChange, currentView, initialDate, eventTypeFilter, organizerFilter, tagsFilter, myEventsFilter }: EventCalendarProps) {
+export function EventCalendar({ onEventClick, onTimeSlotSelect, onViewChange, onViewDatesChange, currentView, initialDate, eventTypeFilter, organizerFilter, tagsFilter, myEventsFilter }: EventCalendarProps) {
   const [events, setEvents] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const isDesktop = useMediaQuery("(min-width: 768px)")
@@ -189,6 +190,10 @@ export function EventCalendar({ onEventClick, onTimeSlotSelect, onViewChange, cu
 
   const handleViewChange = (info: any) => {
     onViewChange?.(info.view.type)
+  }
+
+  const handleDatesSet = (dateInfo: any) => {
+    onViewDatesChange?.(dateInfo.start, dateInfo.end)
   }
 
   const handleEventContent = (arg: any) => {
@@ -546,6 +551,7 @@ export function EventCalendar({ onEventClick, onTimeSlotSelect, onViewChange, cu
         selectAllow={handleSelectAllow}
         dateClick={handleDateClick}
         viewDidMount={handleViewChange}
+        datesSet={handleDatesSet}
         editable={false}
         selectable={true}
         height="auto"
