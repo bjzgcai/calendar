@@ -362,13 +362,9 @@ export function CalendarPageContent() {
                     <Info className="h-3.5 w-3.5" />
                   </button>
                 </TooltipTrigger>
-                <TooltipContent className="max-w-56">
+                <TooltipContent className="max-w-72">
                   <p className="font-medium mb-1">以下负责人可创建编辑日历，并且会自动同步这些负责人所创建的公共活动（人数大于50）：</p>
-                  <ul className="space-y-0.5">
-                    {Object.values(SYNC_USER_NAMES).map((name) => (
-                      <li key={name}>{name}</li>
-                    ))}
-                  </ul>
+                  <p className="leading-relaxed">{Object.values(SYNC_USER_NAMES).join("、")}</p>
                 </TooltipContent>
               </Tooltip>
               {/* Mobile filter button - inline in header */}
