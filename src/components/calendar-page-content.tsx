@@ -15,7 +15,7 @@ import { UserMenu } from "@/components/user-menu"
 import { CalendarEvent } from "@/types/calendar"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
-import { SYNC_USER_IDS, SYNC_USER_NAMES } from "@/lib/sync-config"
+import { SYNC_USER_NAMES } from "@/lib/sync-config"
 import { useAuth } from "@/contexts/auth-context"
 
 type ViewMode = "year" | "month" | "week" | "day" | "list"
@@ -24,7 +24,7 @@ export function CalendarPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { user, ssoEnabled, login } = useAuth()
-  const canEdit = !ssoEnabled || SYNC_USER_IDS.includes(user?.dingtalkUserId ?? "")
+  const canEdit = !ssoEnabled || !!user
 
   // 从 URL 读取初始视图模式和日期
   const initialViewMode = (searchParams.get("view") as ViewMode) || "year"

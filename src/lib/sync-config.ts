@@ -34,7 +34,8 @@ export const SYNC_USER_NAMES: Record<string, string> = {
   "FL9UUOj7qUR9RXIR06nY7QiEiE": "官昊",
   "g8m91sJO3rmniPNiSnwiiIjWgiEiE": "林姝婕",
   "Xg2wCQDpA1xRxOIYLVuiiiSwiEiE": "邢宇",
-  "vbuuZTVsYJ5iSKMHiifkUDmQiEiE": "周敏"
+  "vbuuZTVsYJ5iSKMHiifkUDmQiEiE": "周敏",
+  "mmIii5g2ii1Kj6RuHiPf63HggiEiE": "何萌"
 }
 
 
