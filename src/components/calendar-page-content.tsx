@@ -45,6 +45,7 @@ export function CalendarPageContent() {
   const [viewMode, setViewMode] = useState<ViewMode>(initialViewMode)
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(initialDate)
   const [calendarViewDates, setCalendarViewDates] = useState<{ start: Date; end: Date } | null>(null)
+  const [infoOpen, setInfoOpen] = useState(false)
 
   // 同步 viewMode 到 URL
   useEffect(() => {
@@ -352,9 +353,12 @@ export function CalendarPageContent() {
                 </span>
               </button>
               {/* Info icon: who can edit and auto-sync */}
-              <Tooltip>
+              <Tooltip open={infoOpen} onOpenChange={setInfoOpen}>
                 <TooltipTrigger asChild>
-                  <button className="inline-flex items-center text-muted-foreground hover:text-foreground">
+                  <button
+                    className="inline-flex items-center text-muted-foreground hover:text-foreground"
+                    onClick={() => setInfoOpen((v) => !v)}
+                  >
                     <Info className="h-3.5 w-3.5" />
                   </button>
                 </TooltipTrigger>
