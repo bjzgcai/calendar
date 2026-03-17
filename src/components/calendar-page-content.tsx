@@ -363,7 +363,7 @@ export function CalendarPageContent() {
                   </button>
                 </TooltipTrigger>
                 <TooltipContent className="max-w-72">
-                  <p className="font-medium mb-1">以下负责人可创建编辑日历，并且会自动同步这些负责人所创建的公共活动（人数大于50）：</p>
+                  <p className="font-medium mb-1">每小时整点(也可以点击同步按钮手动刷新),自动同步这些负责人所创建的公共活动（人数大于50）：</p>
                   <p className="leading-relaxed">{Object.values(SYNC_USER_NAMES).join("、")}</p>
                 </TooltipContent>
               </Tooltip>
