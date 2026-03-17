@@ -20,6 +20,7 @@ import {
 import { CalendarEvent } from "@/types/calendar"
 import { getEventTypeColor } from "@/storage/database"
 import { useAuth } from "@/contexts/auth-context"
+import { SYNC_USER_IDS } from "@/lib/sync-config"
 
 interface EventDetailProps {
   event: CalendarEvent | null
@@ -32,7 +33,7 @@ interface EventDetailProps {
 export function EventDetail({ event, open, onOpenChange, onEventDeleted, onEventEdit }: EventDetailProps) {
   const [deleting, setDeleting] = useState(false)
   const { user, ssoEnabled } = useAuth()
-  const canEdit = !ssoEnabled || !!user
+  const canEdit = !ssoEnabled || SYNC_USER_IDS.includes(user?.dingtalkUserId ?? "")
 
   if (!event) return null
 

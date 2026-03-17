@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { List, RefreshCw } from "lucide-react"
+import { List, RefreshCw, Info } from "lucide-react"
 import Image from "next/image"
 import { EventCalendar } from "@/components/event-calendar"
 import { EventListView } from "@/components/event-list-view"
@@ -15,7 +15,7 @@ import { UserMenu } from "@/components/user-menu"
 import { CalendarEvent } from "@/types/calendar"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
-import { SYNC_USER_DISPLAY_NAMES } from "@/lib/sync-config"
+import { SYNC_USER_IDS, SYNC_USER_NAMES } from "@/lib/sync-config"
 import { useAuth } from "@/contexts/auth-context"
 
 type ViewMode = "year" | "month" | "week" | "day" | "list"
@@ -24,7 +24,7 @@ export function CalendarPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { user, ssoEnabled, login } = useAuth()
-  const canEdit = !ssoEnabled || !!user
+  const canEdit = !ssoEnabled || SYNC_USER_IDS.includes(user?.dingtalkUserId ?? "")
 
   // 从 URL 读取初始视图模式和日期
   const initialViewMode = (searchParams.get("view") as ViewMode) || "year"
@@ -331,7 +331,7 @@ export function CalendarPageContent() {
                 >
                   批量创建
                 </button>
-              ) : ssoEnabled && (
+              ) : ssoEnabled && !user && (
                 <button
                   onClick={login}
                   className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all border border-primary text-primary hover:bg-primary/10 h-9 px-4 py-2"
@@ -340,22 +340,31 @@ export function CalendarPageContent() {
                 </button>
               )}
               {/* DingTalk sync status indicator */}
+              <button
+                onClick={() => runSync(true)}
+                disabled={syncStatus === "syncing"}
+                title={lastSyncTime ? `上次同步: ${lastSyncTime.toLocaleTimeString()}` : "同步钉钉日历"}
+                className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
+              >
+                <RefreshCw className={`h-3.5 w-3.5 ${syncStatus === "syncing" ? "animate-spin" : ""} ${syncStatus === "error" ? "text-red-500" : ""}`} />
+                <span className="hidden sm:inline">
+                  {syncStatus === "syncing" ? "同步中…" : syncStatus === "error" ? "同步失败" : "钉钉同步"}
+                </span>
+              </button>
+              {/* Info icon: who can edit and auto-sync */}
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <button
-                    onClick={() => runSync(true)}
-                    disabled={syncStatus === "syncing"}
-                    title={lastSyncTime ? `上次同步: ${lastSyncTime.toLocaleTimeString()}` : "同步钉钉日历"}
-                    className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
-                  >
-                    <RefreshCw className={`h-3.5 w-3.5 ${syncStatus === "syncing" ? "animate-spin" : ""} ${syncStatus === "error" ? "text-red-500" : ""}`} />
-                    <span className="hidden sm:inline">
-                      {syncStatus === "syncing" ? "同步中…" : syncStatus === "error" ? "同步失败" : "钉钉同步"}
-                    </span>
+                  <button className="inline-flex items-center text-muted-foreground hover:text-foreground">
+                    <Info className="h-3.5 w-3.5" />
                   </button>
                 </TooltipTrigger>
-                <TooltipContent>
-                  同步{SYNC_USER_DISPLAY_NAMES}接下来一年的公共活动（人数大于50）
+                <TooltipContent className="max-w-56">
+                  <p className="font-medium mb-1">以下负责人可创建编辑日历，并且会自动同步这些负责人所创建的公共活动（人数大于50）：</p>
+                  <ul className="space-y-0.5">
+                    {Object.values(SYNC_USER_NAMES).map((name) => (
+                      <li key={name}>{name}</li>
+                    ))}
+                  </ul>
                 </TooltipContent>
               </Tooltip>
               {/* Mobile filter button - inline in header */}
