@@ -1,9 +1,61 @@
 import { eq, and, SQL, gte, lte, like, isNull, or, sql } from "drizzle-orm";
 import { getDirectDb } from "@/lib/db";
 import { events, dingtalkDeletedEvents, insertEventWithCoercionSchema, updateEventWithCoercionSchema } from "./shared/schema";
-import type { Event, InsertEvent, UpdateEvent, EventType } from "./shared/schema";
+import type { Event, InsertEvent, UpdateEvent } from "./shared/schema";
+
+type EventListFilters = {
+  eventType?: string;
+  organizer?: string;
+  tags?: string;
+  creatorId?: number | null;
+};
 
 export class EventManager {
+  private buildFilterConditions(filters: EventListFilters): SQL[] {
+    const { eventType, organizer, tags, creatorId } = filters;
+    const conditions: SQL[] = [];
+
+    if (eventType) {
+      // eventType can be comma-separated values, match any of them
+      const typeList = eventType.split(",").filter((t) => t.trim());
+      if (typeList.length > 0) {
+        const typeConditions = typeList.map((type) =>
+          sql`${events.eventType}::text LIKE ${`%${type.trim()}%`}`
+        );
+        conditions.push(or(...typeConditions) as SQL);
+      }
+    }
+
+    if (organizer) {
+      // organizer can be comma-separated values, match any of them
+      const organizerList = organizer.split(",").filter((o) => o.trim());
+      if (organizerList.length > 0) {
+        const organizerConditions = organizerList.map((org) =>
+          like(events.organizer, `%${org.trim()}%`)
+        );
+        conditions.push(or(...organizerConditions) as SQL);
+      }
+    }
+
+    if (tags) {
+      // Support multiple tags separated by comma (AND logic)
+      const tagList = tags.split(",").filter((t) => t.trim());
+      tagList.forEach((tag) => {
+        conditions.push(like(events.tags, `%${tag.trim()}%`));
+      });
+    }
+
+    if (creatorId !== undefined) {
+      if (creatorId === null) {
+        conditions.push(isNull(events.creatorId));
+      } else {
+        conditions.push(eq(events.creatorId, creatorId));
+      }
+    }
+
+    return conditions;
+  }
+
   async createEvent(data: InsertEvent): Promise<Event> {
     const db = getDirectDb();
     const validated = insertEventWithCoercionSchema.parse(data);
@@ -16,15 +68,11 @@ export class EventManager {
     limit?: number;
     startDate?: Date;
     endDate?: Date;
-    eventType?: string;
-    organizer?: string;
-    tags?: string;
-    creatorId?: number | null;
-  }): Promise<Event[]> {
-    const { skip = 0, limit = 100, startDate, endDate, eventType, organizer, tags, creatorId } = options || {};
+  } & EventListFilters): Promise<Event[]> {
+    const { skip = 0, limit = 100, startDate, endDate, ...filters } = options || {};
     const db = getDirectDb();
 
-    const conditions: SQL[] = [];
+    const conditions = this.buildFilterConditions(filters);
 
     if (startDate) {
       conditions.push(gte(events.startTime, startDate));
@@ -32,40 +80,29 @@ export class EventManager {
     if (endDate) {
       conditions.push(lte(events.endTime, endDate));
     }
-    if (eventType) {
-      // eventType can be comma-separated values, match any of them
-      const typeList = eventType.split(',').filter(t => t.trim());
-      if (typeList.length > 0) {
-        const typeConditions = typeList.map(type =>
-          sql`${events.eventType}::text LIKE ${`%${type.trim()}%`}`
-        );
-        conditions.push(or(...typeConditions) as SQL);
-      }
+
+    const query = db.select().from(events);
+
+    if (conditions.length > 0) {
+      query.where(and(...conditions));
     }
-    if (organizer) {
-      // organizer can be comma-separated values, match any of them
-      const organizerList = organizer.split(',').filter(o => o.trim());
-      if (organizerList.length > 0) {
-        const organizerConditions = organizerList.map(org =>
-          like(events.organizer, `%${org.trim()}%`)
-        );
-        conditions.push(or(...organizerConditions) as SQL);
-      }
-    }
-    if (tags) {
-      // Support multiple tags separated by comma (AND logic)
-      const tagList = tags.split(',').filter(t => t.trim());
-      tagList.forEach(tag => {
-        conditions.push(like(events.tags, `%${tag.trim()}%`));
-      });
-    }
-    if (creatorId !== undefined) {
-      if (creatorId === null) {
-        conditions.push(isNull(events.creatorId));
-      } else {
-        conditions.push(eq(events.creatorId, creatorId));
-      }
-    }
+
+    return query.orderBy(events.startTime).limit(limit).offset(skip);
+  }
+
+  async searchEventsByDate(options: {
+    dayStart: Date;
+    dayEnd: Date;
+    skip?: number;
+    limit?: number;
+  } & EventListFilters): Promise<Event[]> {
+    const { skip = 0, limit = 100, dayStart, dayEnd, ...filters } = options;
+    const db = getDirectDb();
+
+    const conditions = this.buildFilterConditions(filters);
+    // Overlap query: event.start <= dayEnd AND event.end >= dayStart
+    conditions.push(lte(events.startTime, dayEnd));
+    conditions.push(gte(events.endTime, dayStart));
 
     const query = db.select().from(events);
 
