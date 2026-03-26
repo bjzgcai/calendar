@@ -4,6 +4,7 @@ import { addDays, addWeeks, addMonths, isWeekend } from "date-fns";
 import type { Event } from "@/storage/database";
 import { getEventTypeColor, getOrganizationType } from "@/storage/database";
 import { getSession } from "@/lib/session";
+import { requireLoggedIn } from "@/lib/api-auth";
 
 export async function GET(request: NextRequest) {
   try {
@@ -88,11 +89,12 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireLoggedIn();
+    if (!auth.ok) return auth.response;
+
     const body = await request.json();
 
-    // 获取当前登录用户的 ID
-    const session = await getSession();
-    const creatorId = session.isLoggedIn && session.userId ? session.userId : null;
+    const creatorId = auth.data.userId;
 
     // 如果传入了 date, startHour, endHour，则构建 startTime 和 endTime
     const startTime = body.date && body.startHour

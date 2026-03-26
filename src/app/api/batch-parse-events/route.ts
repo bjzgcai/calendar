@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { readFile } from "fs/promises";
 import path from "path";
+import { requireLoggedIn } from "@/lib/api-auth";
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
@@ -52,6 +53,19 @@ const VAGUE_EVENT_KEYWORDS = [
   "婚丧嫁娶慰问",
   "公园年票发放",
 ];
+
+function getSafePosterFilename(imageUrl: string): string | null {
+  if (!imageUrl.startsWith("/api/posters/")) return null;
+  const encodedFilename = imageUrl.slice("/api/posters/".length).split("?")[0];
+  let filename: string;
+  try {
+    filename = decodeURIComponent(encodedFilename);
+  } catch {
+    return null;
+  }
+  if (!/^[a-zA-Z0-9._-]+$/.test(filename)) return null;
+  return filename;
+}
 
 function isValidDateParts(year: number, month: number, day: number): boolean {
   const utcDate = new Date(Date.UTC(year, month - 1, day));
@@ -183,7 +197,10 @@ async function toModelImageUrl(imageUrl: string): Promise<string> {
     return imageUrl;
   }
 
-  const filename = imageUrl.split("/api/posters/")[1];
+  const filename = getSafePosterFilename(imageUrl);
+  if (!filename) {
+    throw new Error("Invalid poster image URL");
+  }
   const filePath = path.join(POSTERS_DIR, filename);
   const fileBuffer = await readFile(filePath);
   const base64Image = fileBuffer.toString("base64");
@@ -203,6 +220,9 @@ async function toModelImageUrl(imageUrl: string): Promise<string> {
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireLoggedIn();
+    if (!auth.ok) return auth.response;
+
     if (!OPENROUTER_API_KEY) {
       return NextResponse.json({ error: "OpenRouter API key not configured" }, { status: 500 });
     }

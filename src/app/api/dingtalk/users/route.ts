@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCorpAccessToken, getAllUsers, getDepartmentUserList, getDepartmentUserDetailList } from "@/lib/dingtalk";
+import { requireLoggedIn } from "@/lib/api-auth";
 
 /**
  * GET /api/dingtalk/users
@@ -16,6 +17,9 @@ import { getCorpAccessToken, getAllUsers, getDepartmentUserList, getDepartmentUs
  */
 export async function GET(request: NextRequest) {
   try {
+    const auth = await requireLoggedIn();
+    if (!auth.ok) return auth.response;
+
     // 获取企业 access token
     const corpAccessToken = await getCorpAccessToken();
 

@@ -377,7 +377,7 @@ function EventFormContent({
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                选择"日期待定"的事件会在月视图和年视图中特殊显示
+                选择&quot;日期待定&quot;的事件会在月视图和年视图中特殊显示
               </p>
             </div>
 
@@ -871,7 +871,7 @@ export function EventForm({
     const tagParts = currentTag.trim().split(/\s+/)
     const newTags: string[] = []
 
-    for (let part of tagParts) {
+    for (const part of tagParts) {
       if (!part.trim()) continue
 
       let tagText = part.trim()

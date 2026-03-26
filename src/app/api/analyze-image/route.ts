@@ -1,13 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
 import { readFile } from "fs/promises";
 import path from "path";
+import { requireLoggedIn } from "@/lib/api-auth";
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
 const POSTERS_DIR = process.env.POSTERS_STORAGE_PATH || path.join(process.cwd(), "storage", "posters");
 
+function getSafePosterFilename(imageUrl: string): string | null {
+  if (!imageUrl.startsWith("/api/posters/")) return null;
+  const encodedFilename = imageUrl.slice("/api/posters/".length).split("?")[0];
+  let filename: string;
+  try {
+    filename = decodeURIComponent(encodedFilename);
+  } catch {
+    return null;
+  }
+
+  // Restrict to a flat filename to prevent traversal.
+  if (!/^[a-zA-Z0-9._-]+$/.test(filename)) return null;
+  return filename;
+}
+
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireLoggedIn();
+    if (!auth.ok) return auth.response;
+
     if (!OPENROUTER_API_KEY) {
       return NextResponse.json(
         { error: "OpenRouter API key not configured" },
@@ -28,8 +47,14 @@ export async function POST(request: NextRequest) {
     let imageDataUrl = imageUrl;
     if (imageUrl.startsWith("/api/posters/")) {
       try {
-        // Extract filename from URL
-        const filename = imageUrl.split("/api/posters/")[1];
+        // Extract and validate filename from URL
+        const filename = getSafePosterFilename(imageUrl);
+        if (!filename) {
+          return NextResponse.json(
+            { error: "Invalid poster image URL" },
+            { status: 400 }
+          );
+        }
         const filePath = path.join(POSTERS_DIR, filename);
 
         // Read file and convert to base64

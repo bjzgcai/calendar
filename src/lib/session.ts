@@ -1,5 +1,6 @@
 import { getIronSession, SessionOptions } from "iron-session";
 import { cookies } from "next/headers";
+import { randomBytes } from "crypto";
 
 export interface SessionData {
   userId?: number;
@@ -7,6 +8,8 @@ export interface SessionData {
   name?: string;
   avatar?: string;
   email?: string;
+  oauthState?: string;
+  oauthStateExpiresAt?: number;
   isLoggedIn: boolean;
 }
 
@@ -14,12 +17,22 @@ export const defaultSession: SessionData = {
   isLoggedIn: false,
 };
 
+const SESSION_SECRET = process.env.SESSION_SECRET;
+const HAS_VALID_SESSION_SECRET = Boolean(SESSION_SECRET && SESSION_SECRET.length >= 32);
+const DEV_FALLBACK_SECRET = randomBytes(32).toString("hex");
+
+if (!HAS_VALID_SESSION_SECRET) {
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("SESSION_SECRET must be set and at least 32 characters long in production.");
+  }
+  console.warn("[session] SESSION_SECRET is missing or too short; using an ephemeral dev-only secret.");
+}
+
 export const sessionOptions: SessionOptions = {
-  password: process.env.SESSION_SECRET || "complex_password_at_least_32_characters_long_for_iron_session_secret",
+  password: HAS_VALID_SESSION_SECRET ? SESSION_SECRET! : DEV_FALLBACK_SECRET,
   cookieName: "dingtalk_session",
   cookieOptions: {
-    // secure 只在 HTTPS 中启用
-    secure: process.env.SESSION_SECURE === "true",
+    secure: process.env.NODE_ENV === "production" || process.env.SESSION_SECURE === "true",
     httpOnly: true,
     sameSite: "lax",
     maxAge: 60 * 60 * 24 * 7, // 7 天

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
+import { requireLoggedIn } from "@/lib/api-auth";
 
 // Feature flag for S3 storage (default: false = use local storage)
 const USE_S3_STORAGE = process.env.ENABLE_S3_STORAGE === "true";
@@ -26,6 +27,9 @@ if (USE_S3_STORAGE) {
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireLoggedIn();
+    if (!auth.ok) return auth.response;
+
     const formData = await request.formData();
     const file = formData.get("file") as File;
 

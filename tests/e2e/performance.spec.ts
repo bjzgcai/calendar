@@ -80,16 +80,34 @@ test.describe('Performance Tests', () => {
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(2000);
 
-    const metrics = await page.metrics();
+    const metrics = await page.evaluate(() => {
+      type PerformanceWithMemory = Performance & {
+        memory?: {
+          usedJSHeapSize?: number;
+        };
+      };
+
+      const perf = performance as PerformanceWithMemory;
+
+      return {
+        JSHeapUsedSize: perf.memory?.usedJSHeapSize ?? null,
+        Nodes: document.getElementsByTagName('*').length,
+        JSEventListeners: null,
+      };
+    });
 
     console.log('Memory metrics:', {
-      jsHeapSize: `${(metrics.JSHeapUsedSize / 1024 / 1024).toFixed(2)} MB`,
+      jsHeapSize: metrics.JSHeapUsedSize === null
+        ? 'N/A'
+        : `${(metrics.JSHeapUsedSize / 1024 / 1024).toFixed(2)} MB`,
       nodes: metrics.Nodes,
       listeners: metrics.JSEventListeners
     });
 
     // JS heap should be reasonable (less than 50MB for initial load)
-    expect(metrics.JSHeapUsedSize).toBeLessThan(50 * 1024 * 1024);
+    if (metrics.JSHeapUsedSize !== null) {
+      expect(metrics.JSHeapUsedSize).toBeLessThan(50 * 1024 * 1024);
+    }
   });
 
   test('should handle rapid interactions', async ({ page }) => {

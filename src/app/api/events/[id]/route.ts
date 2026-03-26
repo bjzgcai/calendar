@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { eventManager } from "@/storage/database/eventManager";
 import { getOrganizationType } from "@/storage/database";
+import { requireLoggedIn } from "@/lib/api-auth";
 
 export async function GET(
   request: NextRequest,
@@ -26,6 +27,9 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const auth = await requireLoggedIn();
+    if (!auth.ok) return auth.response;
+
     const { id } = await params;
     const body = await request.json();
 
@@ -81,6 +85,9 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const auth = await requireLoggedIn();
+    if (!auth.ok) return auth.response;
+
     const { id } = await params;
     const success = await eventManager.deleteEvent(parseInt(id));
 

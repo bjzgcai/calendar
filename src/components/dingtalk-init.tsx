@@ -60,9 +60,21 @@ export function DingTalkInit() {
             const authResult = ddObj.requestAuthCode({ corpId: config.corpId });
             if (authResult && typeof (authResult as Promise<{ code: string }>).then === 'function') {
               (authResult as Promise<{ code: string }>)
-                .then((result) => {
+                .then(async (result) => {
                   console.log('[DingTalkInit] Auth code obtained, redirecting to callback');
-                  window.location.href = `/api/auth/callback?code=${result.code}`;
+                  const stateRes = await fetch("/api/auth/login?mode=state");
+                  if (!stateRes.ok) {
+                    console.error("[DingTalkInit] Failed to get OAuth state");
+                    return;
+                  }
+                  const stateData = await stateRes.json();
+                  if (!stateData?.state) {
+                    console.error("[DingTalkInit] OAuth state payload missing");
+                    return;
+                  }
+                  const code = encodeURIComponent(result.code);
+                  const state = encodeURIComponent(stateData.state);
+                  window.location.href = `/api/auth/callback?code=${code}&state=${state}`;
                 })
                 .catch((err: unknown) => {
                   console.error('[DingTalkInit] requestAuthCode failed:', err);

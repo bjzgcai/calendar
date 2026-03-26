@@ -36,6 +36,31 @@ interface EventCalendarProps {
   myEventsFilter?: boolean
 }
 
+function escapeHtml(value: unknown): string {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function sanitizeTooltipImageUrl(value: unknown): string | null {
+  if (typeof value !== "string" || !value.trim()) return null;
+  if (value.startsWith("/api/posters/")) return value;
+
+  try {
+    const parsed = new URL(value);
+    if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+      return parsed.toString();
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
 export function EventCalendar({ onEventClick, onTimeSlotSelect, onViewChange, onViewDatesChange, currentView, initialDate, eventTypeFilter, organizerFilter, tagsFilter, myEventsFilter }: EventCalendarProps) {
   const [events, setEvents] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -244,7 +269,7 @@ export function EventCalendar({ onEventClick, onTimeSlotSelect, onViewChange, on
       timeStr = formatDateByPrecision(startTime, datePrecision, approximateMonth)
     }
 
-    const imageUrl = event.extendedProps?.imageUrl
+    const imageUrl = sanitizeTooltipImageUrl(event.extendedProps?.imageUrl)
     const content = event.extendedProps?.content || ""
     const requiredAttendeesStr = event.extendedProps?.requiredAttendees
 
@@ -271,15 +296,15 @@ export function EventCalendar({ onEventClick, onTimeSlotSelect, onViewChange, on
       <div style="max-width: 280px;">
         ${uncertainBadge}
         <div class="event-tooltip-title">
-          ${event.title}
+          ${escapeHtml(event.title)}
         </div>
         <div class="event-tooltip-time">
-          ${timeStr}
+          ${escapeHtml(timeStr)}
         </div>
         ${
           content
             ? `<div class="event-tooltip-content">
-                ${content}
+                ${escapeHtml(content)}
               </div>`
             : ""
         }
@@ -288,7 +313,7 @@ export function EventCalendar({ onEventClick, onTimeSlotSelect, onViewChange, on
             ? `<div class="event-tooltip-attendees">
                 <strong>👥 必须到场：</strong>
                 <div style="margin-top: 4px;">
-                  ${requiredAttendees.map(a => `<span class="attendee-badge">${a.name}</span>`).join(' ')}
+                  ${requiredAttendees.map((a) => `<span class="attendee-badge">${escapeHtml(a.name)}</span>`).join(" ")}
                 </div>
               </div>`
             : ""
@@ -297,7 +322,7 @@ export function EventCalendar({ onEventClick, onTimeSlotSelect, onViewChange, on
           imageUrl
             ? `<img
                 src="${imageUrl}"
-                alt="${event.title}"
+                alt="${escapeHtml(event.title)}"
                 class="event-tooltip-image"
               />`
             : ""

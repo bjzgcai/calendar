@@ -58,7 +58,6 @@ export default function RootLayout({
           strategy="beforeInteractive"
         />
       </head>
-      {/* @ts-ignore */}
       <body className={`antialiased`}>
         {isDev && <Inspector />}
         <DingTalkInit />

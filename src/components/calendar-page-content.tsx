@@ -25,6 +25,7 @@ export function CalendarPageContent() {
   const searchParams = useSearchParams()
   const { user, ssoEnabled, login } = useAuth()
   const canEdit = !ssoEnabled || !!user
+  const canSync = !!user
 
   // 从 URL 读取初始视图模式和日期
   const initialViewMode = (searchParams.get("view") as ViewMode) || "year"
@@ -204,13 +205,14 @@ export function CalendarPageContent() {
   const syncIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   // manual=true: triggered by button click, refreshes UI on changes
-  // manual=false: background sync, never refreshes UI
-  const runSync = async (manual = false) => {
+  const runSync = async () => {
+    if (!canSync) return
+
     setSyncStatus("syncing")
     try {
       const res = await fetch("/api/dingtalk/sync", { method: "POST" })
       const data = await res.json()
-      if (manual && (data.summary?.created > 0 || data.summary?.updated > 0 || data.summary?.deleted > 0)) {
+      if (data.summary?.created > 0 || data.summary?.updated > 0 || data.summary?.deleted > 0) {
         handleRefresh()
       }
       setLastSyncTime(new Date())
@@ -220,14 +222,28 @@ export function CalendarPageContent() {
     }
   }
 
+  const runBackgroundSync = async () => {
+    if (!canSync) return
+
+    try {
+      const res = await fetch("/api/dingtalk/sync", { method: "POST" })
+      if (!res.ok) return
+      setLastSyncTime(new Date())
+    } catch {
+      // Silent failure in background mode
+    }
+  }
+
   useEffect(() => {
-    // Initial background sync on mount, then every 30 minutes — never refreshes UI
-    runSync(false)
-    syncIntervalRef.current = setInterval(() => runSync(false), 30 * 60 * 1000)
+    if (!canSync) return
+
+    // Initial background sync on mount, then every hour — never refreshes UI
+    runBackgroundSync()
+    syncIntervalRef.current = setInterval(() => runBackgroundSync(), 60 * 60 * 1000)
     return () => {
       if (syncIntervalRef.current) clearInterval(syncIntervalRef.current)
     }
-  }, [])
+  }, [canSync])
 
   const handleFormSuccess = () => {
     console.log("=== 表单成功回调触发 ===")
@@ -340,33 +356,37 @@ export function CalendarPageContent() {
                   点击登录，创建编辑活动
                 </button>
               )}
-              {/* DingTalk sync status indicator */}
-              <button
-                onClick={() => runSync(true)}
-                disabled={syncStatus === "syncing"}
-                title={lastSyncTime ? `上次同步: ${lastSyncTime.toLocaleTimeString()}` : "同步钉钉日历"}
-                className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
-              >
-                <RefreshCw className={`h-3.5 w-3.5 ${syncStatus === "syncing" ? "animate-spin" : ""} ${syncStatus === "error" ? "text-red-500" : ""}`} />
-                <span className="hidden sm:inline">
-                  {syncStatus === "syncing" ? "同步中…" : syncStatus === "error" ? "同步失败" : "钉钉同步"}
-                </span>
-              </button>
-              {/* Info icon: who can edit and auto-sync */}
-              <Tooltip open={infoOpen} onOpenChange={setInfoOpen}>
-                <TooltipTrigger asChild>
+              {canSync && (
+                <>
+                  {/* DingTalk sync status indicator */}
                   <button
-                    className="inline-flex items-center text-muted-foreground hover:text-foreground"
-                    onClick={() => setInfoOpen((v) => !v)}
+                    onClick={() => runSync()}
+                    disabled={syncStatus === "syncing"}
+                    title={lastSyncTime ? `上次同步: ${lastSyncTime.toLocaleTimeString()}` : "同步钉钉日历"}
+                    className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
                   >
-                    <Info className="h-3.5 w-3.5" />
+                    <RefreshCw className={`h-3.5 w-3.5 ${syncStatus === "syncing" ? "animate-spin" : ""} ${syncStatus === "error" ? "text-red-500" : ""}`} />
+                    <span className="hidden sm:inline">
+                      {syncStatus === "syncing" ? "同步中…" : syncStatus === "error" ? "同步失败" : "钉钉同步"}
+                    </span>
                   </button>
-                </TooltipTrigger>
-                <TooltipContent className="max-w-72">
-                  <p className="font-medium mb-1">每小时整点(也可以点击同步按钮手动刷新),自动同步这些负责人所创建的公共活动（人数大于50）：</p>
-                  <p className="leading-relaxed">{Object.values(SYNC_USER_NAMES).join("、")}</p>
-                </TooltipContent>
-              </Tooltip>
+                  {/* Info icon: who can edit and auto-sync */}
+                  <Tooltip open={infoOpen} onOpenChange={setInfoOpen}>
+                    <TooltipTrigger asChild>
+                      <button
+                        className="inline-flex items-center text-muted-foreground hover:text-foreground"
+                        onClick={() => setInfoOpen((v) => !v)}
+                      >
+                        <Info className="h-3.5 w-3.5" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-72">
+                      <p className="font-medium mb-1">每小时整点(也可以点击同步按钮手动刷新),自动同步这些负责人所创建的公共活动（人数大于50）：</p>
+                      <p className="leading-relaxed">{Object.values(SYNC_USER_NAMES).join("、")}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </>
+              )}
               {/* Mobile filter button - inline in header */}
               <div className="lg:hidden">
                 <EventFilter

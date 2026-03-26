@@ -1,10 +1,14 @@
 import { NextResponse } from "next/server"
 import { syncDingTalkCalendar } from "@/lib/dingtalk-calendar-sync"
+import { requireLoggedIn } from "@/lib/api-auth"
 
 export const dynamic = "force-dynamic"
 
 export async function POST() {
   try {
+    const auth = await requireLoggedIn()
+    if (!auth.ok) return auth.response
+
     const results = await syncDingTalkCalendar()
 
     const totalCreated = results.reduce((s, r) => s + r.created, 0)
