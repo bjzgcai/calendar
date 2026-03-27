@@ -32,7 +32,13 @@ export const sessionOptions: SessionOptions = {
   password: HAS_VALID_SESSION_SECRET ? SESSION_SECRET! : DEV_FALLBACK_SECRET,
   cookieName: "dingtalk_session",
   cookieOptions: {
-    secure: process.env.NODE_ENV === "production" || process.env.SESSION_SECURE === "true",
+    // Allow explicit override for non-HTTPS production deployments (e.g. intranet ECS over HTTP).
+    secure:
+      process.env.SESSION_SECURE === "true"
+        ? true
+        : process.env.SESSION_SECURE === "false"
+          ? false
+          : process.env.NODE_ENV === "production",
     httpOnly: true,
     sameSite: "lax",
     maxAge: 60 * 60 * 24 * 7, // 7 天

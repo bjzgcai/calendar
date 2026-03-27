@@ -24,8 +24,15 @@ export async function POST() {
     })
   } catch (err) {
     console.error("DingTalk calendar sync error:", err)
+    const message = err instanceof Error ? err.message : String(err)
+    const isAppCredentialError = message.includes("Illegal appKey or appSecret")
     return NextResponse.json(
-      { success: false, error: err instanceof Error ? err.message : String(err) },
+      {
+        success: false,
+        error: isAppCredentialError
+          ? "DingTalk app credential verification failed. Please check DINGTALK_APP_KEY/DINGTALK_APP_SECRET (or fallback DINGTALK_CLIENT_ID/DINGTALK_CLIENT_SECRET)."
+          : message,
+      },
       { status: 500 }
     )
   }

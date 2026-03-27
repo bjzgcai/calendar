@@ -1,5 +1,5 @@
 ---
-name: deploy_aliyun
+name: deployaliyun
 description: Auto-generate commit message and deploy to Aliyun ECS server (39.97.62.60)
 disable-model-invocation: false
 allowed-tools: Bash, Read

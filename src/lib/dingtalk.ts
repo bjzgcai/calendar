@@ -8,9 +8,14 @@ const DINGTALK_OAPI_BASE = "https://oapi.dingtalk.com"; // 旧版 API
 const DINGTALK_LOGIN_BASE = "https://login.dingtalk.com";
 
 // 环境变量
-const DINGTALK_CLIENT_ID = process.env.DINGTALK_CLIENT_ID!;
-const DINGTALK_CLIENT_SECRET = process.env.DINGTALK_CLIENT_SECRET!;
-const DINGTALK_CORP_ID = process.env.DINGTALK_CORP_ID!;
+const DINGTALK_CLIENT_ID = process.env.DINGTALK_CLIENT_ID?.trim() || "";
+const DINGTALK_CLIENT_SECRET = process.env.DINGTALK_CLIENT_SECRET?.trim() || "";
+const DINGTALK_CORP_ID = process.env.DINGTALK_CORP_ID?.trim() || "";
+
+// Optional dedicated credentials for corp API token (/gettoken).
+// If unset, fall back to SSO OAuth credentials for backward compatibility.
+const DINGTALK_APP_KEY = process.env.DINGTALK_APP_KEY?.trim() || DINGTALK_CLIENT_ID;
+const DINGTALK_APP_SECRET = process.env.DINGTALK_APP_SECRET?.trim() || DINGTALK_CLIENT_SECRET;
 
 /**
  * 检查 DingTalk SSO 是否启用
@@ -125,9 +130,15 @@ export async function getUserInfo(accessToken: string): Promise<{
  * 获取企业内部应用的 access_token (用于调用企业内部 API)
  */
 export async function getCorpAccessToken(): Promise<string> {
+  if (!DINGTALK_APP_KEY || !DINGTALK_APP_SECRET) {
+    throw new Error(
+      "Missing DingTalk corp app credentials. Set DINGTALK_APP_KEY and DINGTALK_APP_SECRET (or DINGTALK_CLIENT_ID/DINGTALK_CLIENT_SECRET as fallback)."
+    );
+  }
+
   const params = new URLSearchParams({
-    appkey: DINGTALK_CLIENT_ID,
-    appsecret: DINGTALK_CLIENT_SECRET,
+    appkey: DINGTALK_APP_KEY,
+    appsecret: DINGTALK_APP_SECRET,
   });
 
   const response = await fetch(`${DINGTALK_OAPI_BASE}/gettoken?${params.toString()}`, {
@@ -142,7 +153,9 @@ export async function getCorpAccessToken(): Promise<string> {
   const data = await response.json();
 
   if (data.errcode !== 0) {
-    throw new Error(`DingTalk API error: ${data.errmsg}`);
+    throw new Error(
+      `DingTalk API error: ${data.errmsg} (code: ${data.errcode}, appKey: ${DINGTALK_APP_KEY.slice(0, 6)}...)`
+    );
   }
 
   return data.access_token;
