@@ -1,6 +1,7 @@
 ---
 name: unoccupied-time-query
 description: Query an internal /availability/query API to compute free time slots from busy event ranges, with hard window 08:00-22:00 and preferred window 09:00-18:00. This skill enforces a fixed source-IP allowlist and is internal-only.these events sources from http://39.97.62.60:5002/?view=year, which compute public events from the calendar data of 50+ users.
+---
 
 # Internal Availability Query
 

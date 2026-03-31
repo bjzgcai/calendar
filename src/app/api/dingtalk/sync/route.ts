@@ -30,7 +30,7 @@ export async function POST() {
       {
         success: false,
         error: isAppCredentialError
-          ? "DingTalk app credential verification failed. Please check DINGTALK_APP_KEY/DINGTALK_APP_SECRET (or fallback DINGTALK_CLIENT_ID/DINGTALK_CLIENT_SECRET)."
+          ? "DingTalk app credential verification failed. Please check DINGTALK_APP_KEY/DINGTALK_APP_SECRET."
           : message,
       },
       { status: 500 }

@@ -174,8 +174,8 @@ pnpm tsx scripts/test-dingtalk-users.ts --all --detailed
 确保在 `.env` 文件中配置了以下环境变量：
 
 ```env
-DINGTALK_CLIENT_ID=your_client_id
-DINGTALK_CLIENT_SECRET=your_client_secret
+DINGTALK_APP_KEY=your_app_key
+DINGTALK_APP_SECRET=your_app_secret
 DINGTALK_CORP_ID=your_corp_id
 ```
 

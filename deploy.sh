@@ -291,10 +291,8 @@ PORT=$APP_PORT
 NODE_ENV=production
 
 # DingTalk Integration (Optional - configure if needed)
-# DINGTALK_APP_ID=
-# DINGTALK_AGENT_ID=
-# DINGTALK_CLIENT_ID=
-# DINGTALK_CLIENT_SECRET=
+# DINGTALK_APP_KEY=
+# DINGTALK_APP_SECRET=
 # DINGTALK_CORP_ID=
 EOF
         log_success ".env file created"

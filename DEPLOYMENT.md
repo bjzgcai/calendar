@@ -258,10 +258,8 @@ NODE_ENV=production
 POSTERS_STORAGE_PATH=/var/calendar-events/posters  # Default if not set
 
 # DingTalk Integration (Optional)
-DINGTALK_APP_ID=your_app_id
-DINGTALK_AGENT_ID=your_agent_id
-DINGTALK_CLIENT_ID=your_client_id
-DINGTALK_CLIENT_SECRET=your_client_secret
+DINGTALK_APP_KEY=your_app_key
+DINGTALK_APP_SECRET=your_app_secret
 DINGTALK_CORP_ID=your_corp_id
 ```
 

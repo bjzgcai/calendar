@@ -99,7 +99,7 @@ SESSION_SECRET                   # iron-session key (32+ chars)
 
 # Auth
 ENABLE_DINGTALK_SSO             # "true" to enable
-DINGTALK_CLIENT_ID / CLIENT_SECRET / CORP_ID / AGENT_ID / APP_ID
+DINGTALK_APP_KEY / APP_SECRET / CORP_ID
 SESSION_SECURE                   # "true" for HTTPS-only cookies
 
 # AI
