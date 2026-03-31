@@ -1,0 +1,4 @@
+interface:
+  display_name: "Internal Availability Query"
+  short_description: "Query internal availability API with source-IP allowlist gate"
+  default_prompt: "Use this skill to query /availability/query for free slots from busy ranges. Only proceed when source IP is allowlisted, keep it internal only, and warn that no-auth is abuse-prone if exposed."

@@ -1,0 +1,295 @@
+openapi: 3.1.0
+info:
+  title: Availability Query API
+  version: 1.0.0
+  summary: Internal availability slot calculation based on busy event ranges.
+  description: |
+    Compute available time slots from busy event ranges in a daily working window.
+
+    This endpoint is intentionally deployed without request authentication for internal callers.
+    It must be protected at the network edge and by QPS limits. Do not expose it directly to the public internet.
+    Access is restricted to an allowlisted source-IP set:
+    219.142.122.2, 125.35.71.202, 125.35.71.206, 42.247.105.2.
+servers:
+  - url: https://calendar.internal.example.com/api
+    description: Internal gateway
+
+tags:
+  - name: Availability
+    description: Availability slot calculation
+
+paths:
+  /availability/query:
+    post:
+      tags: [Availability]
+      operationId: queryAvailability
+      summary: Query available time slots for one date
+      description: |
+        Return available slots inside the hard window (`workingHours`) and rank slots inside
+        `preferredHours` higher.
+
+        Rate-limiting is mandatory for system security.
+      security: []
+      x-rate-limit-policy:
+        algorithm: token_bucket
+        global_qps: 200
+        global_burst: 400
+        per_client_qps: 5
+        per_client_burst: 10
+        client_key_priority:
+          - header:x-client-id
+          - source-ip
+      parameters:
+        - in: header
+          name: x-client-id
+          required: false
+          schema:
+            type: string
+            maxLength: 128
+          description: |
+            Optional stable caller identifier for per-client rate limiting and observability.
+            If omitted, per-client limiting falls back to source IP.
+        - in: header
+          name: x-request-id
+          required: false
+          schema:
+            type: string
+            maxLength: 128
+          description: Optional trace identifier.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AvailabilityQueryRequest'
+            examples:
+              default:
+                value:
+                  date: "2026-03-28"
+                  timezone: "Asia/Shanghai"
+                  workingHours:
+                    start: "08:00"
+                    end: "22:00"
+                  preferredHours:
+                    start: "09:00"
+                    end: "18:00"
+                  minSlotMinutes: 30
+                  slotStepMinutes: 30
+                  busyRanges:
+                    - start: "2026-03-28T09:30:00+08:00"
+                      end: "2026-03-28T10:30:00+08:00"
+                    - start: "2026-03-28T13:00:00+08:00"
+                      end: "2026-03-28T14:30:00+08:00"
+      responses:
+        '200':
+          description: Availability slots returned.
+          headers:
+            X-RateLimit-Limit:
+              $ref: '#/components/headers/XRateLimitLimit'
+            X-RateLimit-Remaining:
+              $ref: '#/components/headers/XRateLimitRemaining'
+            X-RateLimit-Reset:
+              $ref: '#/components/headers/XRateLimitReset'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AvailabilityQueryResponse'
+        '400':
+          description: Invalid input.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidDate:
+                  value:
+                    error:
+                      code: "INVALID_ARGUMENT"
+                      message: "date must be YYYY-MM-DD"
+        '429':
+          description: Rate limit exceeded.
+          headers:
+            Retry-After:
+              $ref: '#/components/headers/RetryAfter'
+            X-RateLimit-Limit:
+              $ref: '#/components/headers/XRateLimitLimit'
+            X-RateLimit-Remaining:
+              $ref: '#/components/headers/XRateLimitRemaining'
+            X-RateLimit-Reset:
+              $ref: '#/components/headers/XRateLimitReset'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                rateLimited:
+                  value:
+                    error:
+                      code: "RATE_LIMITED"
+                      message: "QPS limit exceeded. Retry later."
+        '403':
+          description: Source IP is not allowlisted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                ipNotAllowed:
+                  value:
+                    error:
+                      code: "IP_NOT_ALLOWED"
+                      message: "Source IP is not in allowlist."
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  headers:
+    XRateLimitLimit:
+      description: Allowed requests in the current limit window for this caller.
+      schema:
+        type: integer
+        minimum: 1
+    XRateLimitRemaining:
+      description: Remaining requests in the current limit window for this caller.
+      schema:
+        type: integer
+        minimum: 0
+    XRateLimitReset:
+      description: Unix epoch seconds when the current limit window resets.
+      schema:
+        type: integer
+        minimum: 0
+    RetryAfter:
+      description: Seconds to wait before retrying after a 429 response.
+      schema:
+        type: integer
+        minimum: 1
+
+  schemas:
+    TimeWindow:
+      type: object
+      required: [start, end]
+      properties:
+        start:
+          type: string
+          pattern: '^([01]\\d|2[0-3]):[0-5]\\d$'
+          description: 24-hour local time in HH:MM.
+          example: "08:00"
+        end:
+          type: string
+          pattern: '^([01]\\d|2[0-3]):[0-5]\\d$'
+          description: 24-hour local time in HH:MM.
+          example: "22:00"
+
+    BusyRange:
+      type: object
+      required: [start, end]
+      properties:
+        start:
+          type: string
+          format: date-time
+          description: RFC3339 timestamp.
+        end:
+          type: string
+          format: date-time
+          description: RFC3339 timestamp. Must be greater than start.
+
+    AvailabilityQueryRequest:
+      type: object
+      required: [date, busyRanges]
+      properties:
+        date:
+          type: string
+          pattern: '^\\d{4}-\\d{2}-\\d{2}$'
+          description: Calendar date in local timezone.
+          example: "2026-03-28"
+        timezone:
+          type: string
+          default: "Asia/Shanghai"
+          description: IANA timezone name.
+        workingHours:
+          $ref: '#/components/schemas/TimeWindow'
+        preferredHours:
+          $ref: '#/components/schemas/TimeWindow'
+        minSlotMinutes:
+          type: integer
+          minimum: 15
+          maximum: 240
+          default: 30
+        slotStepMinutes:
+          type: integer
+          minimum: 5
+          maximum: 120
+          default: 30
+        maxResults:
+          type: integer
+          minimum: 1
+          maximum: 500
+          default: 100
+        busyRanges:
+          type: array
+          description: Busy event ranges used to subtract from workingHours.
+          items:
+            $ref: '#/components/schemas/BusyRange'
+          maxItems: 5000
+      additionalProperties: false
+
+    AvailabilitySlot:
+      type: object
+      required: [start, end, durationMinutes, inPreferredWindow, rank]
+      properties:
+        start:
+          type: string
+          format: date-time
+        end:
+          type: string
+          format: date-time
+        durationMinutes:
+          type: integer
+          minimum: 1
+        inPreferredWindow:
+          type: boolean
+        rank:
+          type: integer
+          minimum: 0
+          description: Lower is better. 0 means most preferred.
+
+    AvailabilityQueryResponse:
+      type: object
+      required: [date, timezone, workingHours, preferredHours, slots]
+      properties:
+        date:
+          type: string
+        timezone:
+          type: string
+        workingHours:
+          $ref: '#/components/schemas/TimeWindow'
+        preferredHours:
+          $ref: '#/components/schemas/TimeWindow'
+        slotCount:
+          type: integer
+          minimum: 0
+        slots:
+          type: array
+          items:
+            $ref: '#/components/schemas/AvailabilitySlot'
+
+    ErrorDetail:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          $ref: '#/components/schemas/ErrorDetail'
