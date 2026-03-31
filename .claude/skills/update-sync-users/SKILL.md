@@ -37,6 +37,7 @@ Use this skill when we need to add a user such as `冯杰` to:
    - searched name
    - all matched `userId`
    - all added `unionid -> user_name` mappings
+8. deploy with the "../deploy_aliyun/SKILL.md"
 
 ## Duplicate Name Rule (Important)
 
