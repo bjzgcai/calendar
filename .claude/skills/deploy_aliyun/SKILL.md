@@ -49,6 +49,14 @@ When this skill is invoked:
      ```bash
      ssh -i ~/.ssh/wu.pem -o StrictHostKeyChecking=no ecs-user@39.97.62.60 "
        cd /home/ecs-user/calendar &&
+       export PATH=\$HOME/.local/bin:\$PATH &&
+       if ! command -v dws >/dev/null 2>&1; then
+         echo '[INFO] dws not found, installing...' &&
+         curl -fsSL https://raw.githubusercontent.com/DingTalk-Real-AI/dingtalk-workspace-cli/main/scripts/install.sh | sh
+       fi &&
+       export PATH=\$HOME/.local/bin:\$PATH &&
+       command -v dws >/dev/null 2>&1 &&
+       dws version &&
        pnpm install --frozen-lockfile &&
        pnpm exec drizzle-kit migrate &&
        pm2 restart calendar
@@ -59,6 +67,7 @@ When this skill is invoked:
 4. **Verify deployment**
    - Check PM2 status: `pm2 status`
    - Confirm app is running on port 5002
+   - Confirm `dws` exists on remote server: `command -v dws && dws version`
 
 5. **Clean up**
    - After successful deployment, check for temporary files

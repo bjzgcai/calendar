@@ -1,16 +1,13 @@
 /**
  * DingTalk Calendar Sync Service
- * Syncs calendar events from specified DingTalk users into the local calendar.
+ * Syncs calendar events from dynamically discovered DingTalk users into the local calendar.
  */
 
 import { getCorpAccessToken, getAllUserCalendarEvents, DingTalkCalendarEvent } from "./dingtalk"
 import { getDirectDb } from "./db"
 import { events, dingtalkDeletedEvents } from "@/storage/database/shared/schema"
 import { eq, and, isNotNull, gte, lte } from "drizzle-orm"
-
-// unionIds of users whose calendars should be synced
-import { SYNC_USER_IDS } from "./sync-config"
-export { SYNC_USER_NAMES } from "./sync-config"
+import { resolveSyncUserIds } from "./sync-users-resolver"
 
 
 export interface SyncResult {
@@ -216,8 +213,9 @@ async function syncUserEvents(corpAccessToken: string, userId: string): Promise<
  */
 export async function syncDingTalkCalendar(): Promise<SyncResult[]> {
   const corpAccessToken = await getCorpAccessToken()
+  const syncUserIds = await resolveSyncUserIds()
   const results = await Promise.all(
-    SYNC_USER_IDS.map((userId) => syncUserEvents(corpAccessToken, userId))
+    syncUserIds.map((userId) => syncUserEvents(corpAccessToken, userId))
   )
   return results
 }

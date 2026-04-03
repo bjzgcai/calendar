@@ -7,6 +7,7 @@
 # - Installs lsof for port checking
 # - Auto-detects available port (starting from 5002)
 # - Installs Node.js, PostgreSQL, and pnpm if needed
+# - Installs dws CLI if needed (for DingTalk sync dynamic user discovery)
 # - Sets up PostgreSQL database and user
 # - Configures environment variables (.env)
 # - Installs project dependencies
@@ -246,7 +247,36 @@ install_pnpm() {
 }
 
 ###############################################################################
-# 5. Setup Environment Variables
+# 5. Check and Install dws CLI
+###############################################################################
+install_dws() {
+    log_info "Checking dws CLI installation..."
+
+    if su - $ACTUAL_USER -c 'export PATH="$HOME/.local/bin:$PATH"; command -v dws' &> /dev/null; then
+        DWS_VERSION=$(su - $ACTUAL_USER -c 'export PATH="$HOME/.local/bin:$PATH"; dws version 2>/dev/null | head -n 1')
+        log_success "dws is already installed ${DWS_VERSION:+($DWS_VERSION)}"
+        return 0
+    fi
+
+    if ! command -v curl &> /dev/null; then
+        log_info "Installing curl..."
+        apt-get update -qq
+        apt-get install -y curl
+    fi
+
+    log_info "Installing dws CLI..."
+    su - $ACTUAL_USER -c 'curl -fsSL https://raw.githubusercontent.com/DingTalk-Real-AI/dingtalk-workspace-cli/main/scripts/install.sh | sh'
+
+    if ! su - $ACTUAL_USER -c 'export PATH="$HOME/.local/bin:$PATH"; command -v dws' &> /dev/null; then
+        log_error "dws installation failed. Please install manually and re-run deploy."
+        exit 1
+    fi
+
+    log_success "dws installed successfully"
+}
+
+###############################################################################
+# 6. Setup Environment Variables
 ###############################################################################
 setup_environment() {
     log_info "Setting up environment variables..."
@@ -306,7 +336,7 @@ EOF
 }
 
 ###############################################################################
-# 6. Install Project Dependencies
+# 7. Install Project Dependencies
 ###############################################################################
 install_dependencies() {
     log_info "Installing project dependencies..."
@@ -326,7 +356,7 @@ install_dependencies() {
 }
 
 ###############################################################################
-# 7. Run Database Migrations
+# 8. Run Database Migrations
 ###############################################################################
 run_migrations() {
     log_info "Running database migrations..."
@@ -364,7 +394,7 @@ run_migrations() {
 }
 
 ###############################################################################
-# 8. Build Application
+# 9. Build Application
 ###############################################################################
 build_application() {
     log_info "Building Next.js application..."
@@ -401,7 +431,7 @@ build_application() {
 }
 
 ###############################################################################
-# 9. Create Systemd Service
+# 10. Create Systemd Service
 ###############################################################################
 create_systemd_service() {
     log_info "Setting up systemd service..."
@@ -431,6 +461,7 @@ WorkingDirectory=$PROJECT_DIR
 Environment=NODE_ENV=production
 Environment=PORT=$APP_PORT
 Environment=POSTERS_STORAGE_PATH=/var/calendar-events/posters
+Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$ACTUAL_HOME/.local/bin
 EnvironmentFile=$PROJECT_DIR/.env
 ExecStart=$(which pnpm) start
 Restart=always
@@ -470,7 +501,7 @@ EOF
 }
 
 ###############################################################################
-# 10. Start/Restart Application
+# 11. Start/Restart Application
 ###############################################################################
 start_application() {
     log_info "Starting application..."
@@ -565,27 +596,31 @@ main() {
     install_pnpm
     echo ""
 
-    # Step 5: Setup Environment
+    # Step 5: Install dws
+    install_dws
+    echo ""
+
+    # Step 6: Setup Environment
     setup_environment
     echo ""
 
-    # Step 6: Install Dependencies
+    # Step 7: Install Dependencies
     install_dependencies
     echo ""
 
-    # Step 7: Run Migrations
+    # Step 8: Run Migrations
     run_migrations
     echo ""
 
-    # Step 8: Build Application
+    # Step 9: Build Application
     build_application
     echo ""
 
-    # Step 9: Create Systemd Service
+    # Step 10: Create Systemd Service
     create_systemd_service
     echo ""
 
-    # Step 10: Start Application
+    # Step 11: Start Application
     start_application
     echo ""
 

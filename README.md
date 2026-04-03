@@ -4,6 +4,27 @@
 
 ## 快速开始
 
+### 安装 dws CLI（钉钉同步依赖）
+
+钉钉日历同步现在会在服务端调用 `dws calendar event list` 做动态候选人发现，因此 `dws` 是运行时依赖。
+
+```bash
+# macOS / Linux
+curl -fsSL https://raw.githubusercontent.com/DingTalk-Real-AI/dingtalk-workspace-cli/main/scripts/install.sh | sh
+
+# 确认安装
+export PATH="$HOME/.local/bin:$PATH"
+dws version
+```
+
+首次安装后请完成认证（在部署机/服务器本机执行）：
+
+```bash
+dws auth login --client-id <your-app-key> --client-secret <your-app-secret>
+# 或先检查状态
+dws auth status
+```
+
 ### 启动开发服务器
 
 ```bash
@@ -41,6 +62,7 @@ sudo ./deploy.sh
 - ✅ 安装 PostgreSQL 数据库 (如未安装)
 - ✅ 创建数据库和用户
 - ✅ 安装 pnpm 包管理器
+- ✅ 检查并安装 dws CLI（钉钉同步依赖）
 - ✅ 配置环境变量
 - ✅ 安装项目依赖
 - ✅ 运行数据库迁移

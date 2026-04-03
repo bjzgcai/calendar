@@ -87,3 +87,8 @@ export const SYNC_USER_NAMES: Record<string, string> = {
   // "unionid": "姓名",
 }
 ```
+
+## backup solution
+install cli tools, calls more APIs to get all user events
+
+dws calendar event list -f json --jq '.result.events | map(select((.attendees|length) > 50) | {id, summary, start: .start.dateTime, end: .end.dateTime, organizer: .organizer.displayName, attendee_count:(.attendees|length), status})'

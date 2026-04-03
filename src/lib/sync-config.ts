@@ -1,4 +1,5 @@
-// Shared sync configuration — safe to import in both server and client code
+// Fallback sync configuration.
+// Primary sync user discovery is dynamic via dws; this map is used only as a safety backup.
 
 export const SYNC_USER_NAMES: Record<string, string> = {
   "Qfr1meiPqooG1l2jyZ5zOyQiEiE": "钟泱榆",

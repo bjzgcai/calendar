@@ -15,7 +15,6 @@ import { UserMenu } from "@/components/user-menu"
 import { CalendarEvent } from "@/types/calendar"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
-import { SYNC_USER_NAMES } from "@/lib/sync-config"
 import { useAuth } from "@/contexts/auth-context"
 
 type ViewMode = "year" | "month" | "week" | "day" | "list"
@@ -381,8 +380,12 @@ export function CalendarPageContent() {
                       </button>
                     </TooltipTrigger>
                     <TooltipContent className="max-w-72">
-                      <p className="font-medium mb-1">每小时整点(也可以点击同步按钮手动刷新),自动同步这些负责人所创建的公共活动（人数大于50）：</p>
-                      <p className="leading-relaxed">{Object.values(SYNC_USER_NAMES).join("、")}</p>
+                      <p className="font-medium mb-1">
+                        每小时整点(也可以点击同步按钮手动刷新)，自动同步满足条件的公共活动：
+                      </p>
+                      <p className="leading-relaxed">
+                        基于钉钉日程动态识别候选负责人，仅同步参与人数大于 50 的活动。
+                      </p>
                     </TooltipContent>
                   </Tooltip>
                 </>
