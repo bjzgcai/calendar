@@ -59,7 +59,8 @@ When this skill is invoked:
        dws version &&
        pnpm install --frozen-lockfile &&
        pnpm exec drizzle-kit migrate &&
-       pm2 restart calendar
+       pm2 restart calendar --update-env &&
+       ./scripts/setup-dingtalk-sync-cron.sh
      "
      ```
    - Monitor output and report any errors

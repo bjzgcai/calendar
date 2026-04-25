@@ -1,13 +1,16 @@
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { syncDingTalkCalendar } from "@/lib/dingtalk-calendar-sync"
 import { requireLoggedIn } from "@/lib/api-auth"
+import { hasValidInternalApiKey } from "@/lib/internal-api-auth"
 
 export const dynamic = "force-dynamic"
 
-export async function POST() {
+export async function POST(request: NextRequest) {
   try {
-    const auth = await requireLoggedIn()
-    if (!auth.ok) return auth.response
+    if (!hasValidInternalApiKey(request)) {
+      const auth = await requireLoggedIn()
+      if (!auth.ok) return auth.response
+    }
 
     const results = await syncDingTalkCalendar()
 

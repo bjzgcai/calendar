@@ -1,0 +1,68 @@
+import assert from "node:assert/strict"
+import test from "node:test"
+
+import { hasValidInternalApiKey } from "../../src/lib/internal-api-auth"
+import { buildDwsExecEnv } from "../../src/lib/dws-command-env"
+import { getDingTalkSyncWindows } from "../../src/lib/dingtalk-sync-window"
+import { SYNC_USER_NAMES } from "../../src/lib/sync-config"
+
+test("DingTalk sync windows split previous 30 days and next 365 days into API-safe ranges", () => {
+  const now = new Date("2026-04-25T03:11:00.000Z")
+  const windows = getDingTalkSyncWindows(now)
+
+  assert.deepEqual(
+    windows.map(({ timeMin, timeMax }) => [timeMin.toISOString(), timeMax.toISOString()]),
+    [
+      ["2026-03-26T03:11:00.000Z", "2026-04-25T03:11:00.000Z"],
+      ["2026-04-25T03:11:00.000Z", "2027-04-25T03:11:00.000Z"],
+    ]
+  )
+
+  const maxWindowMs = 365 * 24 * 60 * 60 * 1000
+  assert.equal(windows.every(({ timeMin, timeMax }) => timeMax.getTime() - timeMin.getTime() <= maxWindowMs), true)
+})
+
+test("DWS exec env prepends the user-local bin directory", () => {
+  const env = buildDwsExecEnv({ HOME: "/home/ecs-user", PATH: "/usr/bin:/bin" })
+
+  assert.equal(env.PATH, "/home/ecs-user/.local/bin:/usr/bin:/bin")
+})
+
+test("DWS exec env does not duplicate user-local bin when already present", () => {
+  const env = buildDwsExecEnv({ HOME: "/home/ecs-user", PATH: "/home/ecs-user/.local/bin:/usr/bin" })
+
+  assert.equal(env.PATH, "/home/ecs-user/.local/bin:/usr/bin")
+})
+
+test("internal API key auth accepts a matching x-api-key header", () => {
+  const previous = process.env.THIRD_PARTY_API_KEY
+  process.env.THIRD_PARTY_API_KEY = "sync-secret"
+
+  try {
+    const request = { headers: new Headers({ "x-api-key": "sync-secret" }) }
+    assert.equal(hasValidInternalApiKey(request), true)
+  } finally {
+    if (previous === undefined) delete process.env.THIRD_PARTY_API_KEY
+    else process.env.THIRD_PARTY_API_KEY = previous
+  }
+})
+
+test("internal API key auth rejects missing, wrong, or unconfigured keys", () => {
+  const previous = process.env.THIRD_PARTY_API_KEY
+
+  try {
+    process.env.THIRD_PARTY_API_KEY = "sync-secret"
+    assert.equal(hasValidInternalApiKey({ headers: new Headers() }), false)
+    assert.equal(hasValidInternalApiKey({ headers: new Headers({ "x-api-key": "wrong" }) }), false)
+
+    delete process.env.THIRD_PARTY_API_KEY
+    assert.equal(hasValidInternalApiKey({ headers: new Headers({ "x-api-key": "sync-secret" }) }), false)
+  } finally {
+    if (previous === undefined) delete process.env.THIRD_PARTY_API_KEY
+    else process.env.THIRD_PARTY_API_KEY = previous
+  }
+})
+
+test("fallback sync users include Gao Jing for known 50-plus attendee events", () => {
+  assert.equal(SYNC_USER_NAMES.MXsvR7kqk4KgsXVriPke9ewiEiE, "高京")
+})

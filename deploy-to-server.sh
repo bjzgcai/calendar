@@ -135,7 +135,8 @@ else
     echo "Installing dependencies and restarting..."
     pnpm install --frozen-lockfile
     pnpm build
-    pm2 restart calendar 2>/dev/null || pm2 start "pnpm start" --name calendar -- --port ${APP_PORT}
+    pm2 restart calendar --update-env 2>/dev/null || pm2 start "pnpm start" --name calendar -- --port ${APP_PORT}
+    ./scripts/setup-dingtalk-sync-cron.sh
 fi
 
 echo ""

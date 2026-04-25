@@ -9,6 +9,7 @@
     "lint": "eslint",
     "start": "next start --port 5002",
     "ts-check": "tsc -p tsconfig.json",
+    "test:unit": "tsx --test tests/unit/**/*.test.ts",
     "check-holidays": "tsx scripts/check-holiday-update.ts",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",

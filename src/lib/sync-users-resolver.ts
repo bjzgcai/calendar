@@ -3,6 +3,7 @@ import "server-only"
 import { execFile } from "node:child_process"
 import { promisify } from "node:util"
 import { getAllUsers, getCorpAccessToken } from "./dingtalk"
+import { buildDwsExecEnv } from "./dws-command-env"
 import { SYNC_USER_NAMES as FALLBACK_SYNC_USER_NAMES } from "./sync-config"
 
 const execFileAsync = promisify(execFile)
@@ -31,6 +32,7 @@ async function getOrganizerNamesFromDws(): Promise<string[]> {
     "dws",
     ["calendar", "event", "list", "-f", "json", "--jq", DWS_ATTENDEE_FILTER_JQ],
     {
+      env: buildDwsExecEnv() as NodeJS.ProcessEnv,
       maxBuffer: 10 * 1024 * 1024,
     }
   )

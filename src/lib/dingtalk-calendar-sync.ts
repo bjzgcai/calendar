@@ -8,6 +8,7 @@ import { getDirectDb } from "./db"
 import { events, dingtalkDeletedEvents } from "@/storage/database/shared/schema"
 import { eq, and, isNotNull, gte, lte } from "drizzle-orm"
 import { resolveSyncUserIds } from "./sync-users-resolver"
+import { getDingTalkSyncWindows } from "./dingtalk-sync-window"
 
 
 export interface SyncResult {
@@ -75,14 +76,21 @@ async function syncUserEvents(corpAccessToken: string, userId: string): Promise<
   const result: SyncResult = { userId, created: 0, updated: 0, deleted: 0, skipped: 0 }
 
   try {
-    const timeMin = new Date()
-    const timeMax = new Date()
-    timeMax.setDate(timeMax.getDate() + 365)
+    const syncWindows = getDingTalkSyncWindows()
+    const timeMin = syncWindows[0].timeMin
+    const timeMax = syncWindows[syncWindows.length - 1].timeMax
 
-    const dtEvents = await getAllUserCalendarEvents(corpAccessToken, userId, {
-      timeMin: timeMin.toISOString(),
-      timeMax: timeMax.toISOString(),
-    })
+    const dtEventsById = new Map<string, DingTalkCalendarEvent>()
+    for (const window of syncWindows) {
+      const windowEvents = await getAllUserCalendarEvents(corpAccessToken, userId, {
+        timeMin: window.timeMin.toISOString(),
+        timeMax: window.timeMax.toISOString(),
+      })
+      for (const event of windowEvents) {
+        dtEventsById.set(event.id, event)
+      }
+    }
+    const dtEvents = Array.from(dtEventsById.values())
 
     const db = getDirectDb()
 
