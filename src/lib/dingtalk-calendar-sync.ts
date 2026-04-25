@@ -233,8 +233,11 @@ async function syncUserEvents(corpAccessToken: string, userId: string): Promise<
 export async function syncDingTalkCalendar(): Promise<SyncResult[]> {
   const corpAccessToken = await getCorpAccessToken()
   const syncUserIds = await resolveSyncUserIds()
-  const results = await Promise.all(
-    syncUserIds.map((userId) => syncUserEvents(corpAccessToken, userId))
-  )
+  const results: SyncResult[] = []
+
+  for (const userId of syncUserIds) {
+    results.push(await syncUserEvents(corpAccessToken, userId))
+  }
+
   return results
 }

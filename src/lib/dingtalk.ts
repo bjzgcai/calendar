@@ -11,6 +11,16 @@ const DINGTALK_LOGIN_BASE = "https://login.dingtalk.com";
 const DINGTALK_APP_KEY = process.env.DINGTALK_APP_KEY?.trim() || "";
 const DINGTALK_APP_SECRET = process.env.DINGTALK_APP_SECRET?.trim() || "";
 
+const DINGTALK_QPS_RETRY_DELAY_MS = 1200;
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isDingTalkQpsLimitError(payload: string) {
+  return payload.includes("QpsLimit") || payload.includes("qps流控");
+}
+
 /**
  * 检查 DingTalk SSO 是否启用
  * 默认为关闭状态
@@ -375,6 +385,33 @@ export async function getUserCalendarEvents(
     maxResults?: number
     syncToken?: string
   } = {}
+): Promise<DingTalkCalendarEventsResult> {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      return await getUserCalendarEventsOnce(accessToken, userId, calendarId, options)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      if (!isDingTalkQpsLimitError(message) || attempt === 2) {
+        throw error
+      }
+      await sleep(DINGTALK_QPS_RETRY_DELAY_MS * (attempt + 1))
+    }
+  }
+
+  throw new Error(`Failed to get calendar events for user ${userId}`)
+}
+
+async function getUserCalendarEventsOnce(
+  accessToken: string,
+  userId: string,
+  calendarId: string,
+  options: {
+    timeMin?: string
+    timeMax?: string
+    pageToken?: string
+    maxResults?: number
+    syncToken?: string
+  }
 ): Promise<DingTalkCalendarEventsResult> {
   const params = new URLSearchParams()
   if (options.timeMin) params.set("timeMin", options.timeMin)
