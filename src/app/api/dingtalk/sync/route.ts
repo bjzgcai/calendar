@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { syncDingTalkCalendar } from "@/lib/dingtalk-calendar-sync"
 import { requireLoggedIn } from "@/lib/api-auth"
 import { hasValidInternalApiKey } from "@/lib/internal-api-auth"
+import { notifyDingTalkFatalAlert } from "@/lib/dingtalk-alerts"
 
 export const dynamic = "force-dynamic"
 
@@ -19,6 +20,14 @@ export async function POST(request: NextRequest) {
     const totalDeleted = results.reduce((s, r) => s + r.deleted, 0)
     const errors = results.filter((r) => r.error).map((r) => `${r.userId}: ${r.error}`)
 
+    if (errors.length > 0) {
+      await notifyDingTalkFatalAlert({
+        title: "DingTalk sync failed",
+        source: "api/dingtalk/sync",
+        fatalInfo: errors.join("\n\n"),
+      })
+    }
+
     return NextResponse.json({
       success: errors.length === 0,
       results,
@@ -29,6 +38,11 @@ export async function POST(request: NextRequest) {
     console.error("DingTalk calendar sync error:", err)
     const message = err instanceof Error ? err.message : String(err)
     const isAppCredentialError = message.includes("Illegal appKey or appSecret")
+    await notifyDingTalkFatalAlert({
+      title: isAppCredentialError ? "DingTalk sync auth failed" : "DingTalk sync crashed",
+      source: "api/dingtalk/sync",
+      fatalInfo: message,
+    })
     return NextResponse.json(
       {
         success: false,

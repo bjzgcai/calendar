@@ -137,6 +137,7 @@ else
     pnpm build
     pm2 restart calendar --update-env 2>/dev/null || pm2 start "pnpm start" --name calendar -- --port ${APP_PORT}
     ./scripts/setup-dingtalk-sync-cron.sh
+    ./scripts/setup-service-monitor-cron.sh
 fi
 
 echo ""

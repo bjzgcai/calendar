@@ -16,6 +16,7 @@
 # - Creates persistent storage directory (/var/calendar-events/posters)
 # - Sets up systemd service for robust process management
 # - Starts/restarts the application
+# - Installs remote service monitoring cron alerts
 #
 # Features:
 # - Idempotent: Safe to run multiple times
@@ -324,6 +325,7 @@ NODE_ENV=production
 # DINGTALK_APP_KEY=
 # DINGTALK_APP_SECRET=
 # DINGTALK_CORP_ID=
+# ALERT_DINGTALK_USER_ID=
 EOF
         log_success ".env file created"
     fi
@@ -622,6 +624,12 @@ main() {
 
     # Step 11: Start Application
     start_application
+    echo ""
+
+    # Step 12: Install service monitor cron
+    log_info "Installing service monitor cron..."
+    su - $ACTUAL_USER -c "cd '$PROJECT_DIR' && bash ./scripts/setup-service-monitor-cron.sh"
+    log_success "Service monitor cron installed"
     echo ""
 
     log_success "=========================================="

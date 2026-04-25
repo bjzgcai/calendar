@@ -5,6 +5,15 @@ import { getDirectDb } from "@/lib/db";
 import { users, User } from "@/storage/database/shared/schema";
 import { eq } from "drizzle-orm";
 import { getAppBaseUrl } from "@/lib/url";
+import { notifyDingTalkFatalAlert } from "@/lib/dingtalk-alerts";
+
+async function alertAuthFailure(reason: string, details?: string) {
+  await notifyDingTalkFatalAlert({
+    title: "DingTalk auth failed",
+    source: "api/auth/callback",
+    fatalInfo: details ? `${reason}\n\n${details}` : reason,
+  });
+}
 
 export async function GET(request: NextRequest) {
   // 检查 DingTalk SSO 是否启用
@@ -100,6 +109,7 @@ export async function GET(request: NextRequest) {
     console.log("4. Setting session...");
     const session = await getSession();
     if (!session.oauthState || !session.oauthStateExpiresAt) {
+      await alertAuthFailure("Invalid OAuth session state");
       return NextResponse.json(
         { error: "Invalid OAuth session state" },
         { status: 400 }
@@ -110,6 +120,7 @@ export async function GET(request: NextRequest) {
       session.oauthState = undefined;
       session.oauthStateExpiresAt = undefined;
       await session.save();
+      await alertAuthFailure("OAuth state expired");
       return NextResponse.json(
         { error: "OAuth state expired, please retry login" },
         { status: 400 }
@@ -117,6 +128,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (session.oauthState !== state) {
+      await alertAuthFailure("OAuth state mismatch");
       return NextResponse.json(
         { error: "OAuth state mismatch" },
         { status: 400 }
@@ -140,6 +152,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(`${getAppBaseUrl(request)}/?view=year`);
   } catch (error) {
     console.error("DingTalk OAuth callback error:", error);
+    await alertAuthFailure(
+      "DingTalk OAuth callback crashed",
+      error instanceof Error ? error.message : String(error)
+    );
     return NextResponse.json(
       { error: "Authentication failed", details: error instanceof Error ? error.message : String(error) },
       { status: 500 }
