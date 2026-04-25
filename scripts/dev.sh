@@ -1,6 +1,11 @@
 #!/bin/bash
 set -Eeuo pipefail
 
+# Always execute relative to the repository root (this script lives in scripts/).
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+cd "${PROJECT_ROOT}"
+
 PORT=5002
 NODE_ENV=development
 DEPLOY_RUN_PORT=5002
@@ -27,4 +32,4 @@ echo "Clearing port ${PORT} before start."
 kill_port_if_listening
 echo "Starting HTTP service on port ${PORT} for dev..."
 
-npx next dev --turbopack --port $PORT --hostname 0.0.0.0
+pnpm exec next dev --turbopack --port "${PORT}" --hostname 0.0.0.0

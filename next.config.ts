@@ -1,10 +1,14 @@
 import type { NextConfig } from 'next'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const projectRoot = path.dirname(fileURLToPath(import.meta.url))
 
 const nextConfig: NextConfig = {
   // Next.js 16 默认使用 Turbopack
   turbopack: {
-    // 设置 workspace root 以消除多 lockfile 警告
-    root: process.cwd(),
+    // Set a stable workspace root independent from shell cwd.
+    root: projectRoot,
   },
 }
 
