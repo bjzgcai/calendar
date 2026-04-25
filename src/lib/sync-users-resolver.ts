@@ -4,12 +4,13 @@ import { execFile } from "node:child_process"
 import { promisify } from "node:util"
 import { getAllUsers, getCorpAccessToken } from "./dingtalk"
 import { buildDwsExecEnv } from "./dws-command-env"
+import { getDingTalkSyncWindows } from "./dingtalk-sync-window"
 import { SYNC_USER_NAMES as FALLBACK_SYNC_USER_NAMES } from "./sync-config"
 
 const execFileAsync = promisify(execFile)
 
 const DWS_ATTENDEE_FILTER_JQ =
-  ".result.events | map(select((.attendees|length) > 50) | {organizer: .organizer.displayName})"
+  "(.result.events // []) | map(select((.attendees|length) > 50) | {organizer: .organizer.displayName})"
 const SYNC_USER_CACHE_TTL_MS = 10 * 60 * 1000
 
 let cachedAt = 0
@@ -28,22 +29,37 @@ function normalizeName(value: unknown): string | null {
 }
 
 async function getOrganizerNamesFromDws(): Promise<string[]> {
-  const { stdout } = await execFileAsync(
-    "dws",
-    ["calendar", "event", "list", "-f", "json", "--jq", DWS_ATTENDEE_FILTER_JQ],
-    {
-      env: buildDwsExecEnv() as NodeJS.ProcessEnv,
-      maxBuffer: 10 * 1024 * 1024,
-    }
-  )
-
-  const payload = JSON.parse(stdout.trim()) as DwsEventOrganizerRow[]
   const names = new Set<string>()
 
-  for (const event of payload) {
-    const organizerName = normalizeName(event.organizer)
-    if (organizerName) {
-      names.add(organizerName)
+  for (const window of getDingTalkSyncWindows()) {
+    const { stdout } = await execFileAsync(
+      "dws",
+      [
+        "calendar",
+        "event",
+        "list",
+        "--start",
+        window.timeMin.toISOString(),
+        "--end",
+        window.timeMax.toISOString(),
+        "--format",
+        "json",
+        "--jq",
+        DWS_ATTENDEE_FILTER_JQ,
+      ],
+      {
+        env: buildDwsExecEnv() as NodeJS.ProcessEnv,
+        maxBuffer: 10 * 1024 * 1024,
+      }
+    )
+
+    const payload = JSON.parse(stdout.trim()) as DwsEventOrganizerRow[]
+
+    for (const event of payload) {
+      const organizerName = normalizeName(event.organizer)
+      if (organizerName) {
+        names.add(organizerName)
+      }
     }
   }
 
@@ -82,6 +98,13 @@ function cloneSyncMap(map: Record<string, string>): Record<string, string> {
   return Object.fromEntries(Object.entries(map))
 }
 
+export function mergeSyncUserNames(dynamicNames: Record<string, string>): Record<string, string> {
+  return {
+    ...FALLBACK_SYNC_USER_NAMES,
+    ...dynamicNames,
+  }
+}
+
 export async function resolveSyncUserNames(): Promise<Record<string, string>> {
   const now = Date.now()
   if (cachedSyncUserNames && now - cachedAt < SYNC_USER_CACHE_TTL_MS) {
@@ -92,11 +115,7 @@ export async function resolveSyncUserNames(): Promise<Record<string, string>> {
     const organizerNames = await getOrganizerNamesFromDws()
     const resolved = await mapOrganizerNamesToUnionIds(organizerNames)
 
-    if (Object.keys(resolved).length === 0) {
-      cachedSyncUserNames = cloneSyncMap(FALLBACK_SYNC_USER_NAMES)
-    } else {
-      cachedSyncUserNames = resolved
-    }
+    cachedSyncUserNames = mergeSyncUserNames(resolved)
   } catch (error) {
     console.warn("Failed to resolve sync users via dws. Falling back to static sync user list.", error)
     cachedSyncUserNames = cloneSyncMap(FALLBACK_SYNC_USER_NAMES)

@@ -69,7 +69,7 @@ export class EventManager {
     startDate?: Date;
     endDate?: Date;
   } & EventListFilters): Promise<Event[]> {
-    const { skip = 0, limit = 100, startDate, endDate, ...filters } = options || {};
+    const { skip = 0, limit, startDate, endDate, ...filters } = options || {};
     const db = getDirectDb();
 
     const conditions = this.buildFilterConditions(filters);
@@ -87,7 +87,14 @@ export class EventManager {
       query.where(and(...conditions));
     }
 
-    return query.orderBy(events.startTime).limit(limit).offset(skip);
+    const orderedQuery = query.orderBy(events.startTime);
+    if (limit !== undefined) {
+      return orderedQuery.limit(limit).offset(skip);
+    }
+    if (skip > 0) {
+      return orderedQuery.offset(skip);
+    }
+    return orderedQuery;
   }
 
   async searchEventsByDate(options: {

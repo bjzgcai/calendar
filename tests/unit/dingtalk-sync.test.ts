@@ -7,19 +7,19 @@ import { getActiveDingTalkEventIdsForOrganizer, getDingTalkEventOrganizerId } fr
 import { getDingTalkSyncWindows } from "../../src/lib/dingtalk-sync-window"
 import { SYNC_USER_NAMES } from "../../src/lib/sync-config"
 
-test("DingTalk sync windows split previous 30 days and next 365 days into API-safe ranges", () => {
+test("DingTalk sync windows cover previous 30 days and next 365 days in 30-day chunks", () => {
   const now = new Date("2026-04-25T03:11:00.000Z")
   const windows = getDingTalkSyncWindows(now)
 
-  assert.deepEqual(
-    windows.map(({ timeMin, timeMax }) => [timeMin.toISOString(), timeMax.toISOString()]),
-    [
-      ["2026-03-26T03:11:00.000Z", "2026-04-25T03:11:00.000Z"],
-      ["2026-04-25T03:11:00.000Z", "2027-04-25T03:11:00.000Z"],
-    ]
-  )
+  assert.equal(windows[0].timeMin.toISOString(), "2026-03-26T03:11:00.000Z")
+  assert.equal(windows.at(-1)?.timeMax.toISOString(), "2027-04-25T03:11:00.000Z")
+  assert.deepEqual(windows.slice(0, 3).map(({ timeMin, timeMax }) => [timeMin.toISOString(), timeMax.toISOString()]), [
+    ["2026-03-26T03:11:00.000Z", "2026-04-25T03:11:00.000Z"],
+    ["2026-04-25T03:11:00.000Z", "2026-05-25T03:11:00.000Z"],
+    ["2026-05-25T03:11:00.000Z", "2026-06-24T03:11:00.000Z"],
+  ])
 
-  const maxWindowMs = 365 * 24 * 60 * 60 * 1000
+  const maxWindowMs = 30 * 24 * 60 * 60 * 1000
   assert.equal(windows.every(({ timeMin, timeMax }) => timeMax.getTime() - timeMin.getTime() <= maxWindowMs), true)
 })
 
