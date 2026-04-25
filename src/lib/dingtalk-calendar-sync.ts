@@ -3,13 +3,18 @@
  * Syncs calendar events from dynamically discovered DingTalk users into the local calendar.
  */
 
-import { getCorpAccessToken, getAllUserCalendarEvents, DingTalkCalendarEvent } from "./dingtalk"
+import {
+  getCorpAccessToken,
+  getAllUserCalendarEvents,
+  DingTalkCalendarEvent,
+  getActiveDingTalkEventIdsForOrganizer,
+  getDingTalkEventOrganizerId,
+} from "./dingtalk"
 import { getDirectDb } from "./db"
 import { events, dingtalkDeletedEvents } from "@/storage/database/shared/schema"
 import { eq, and, isNotNull, gte, lte } from "drizzle-orm"
 import { resolveSyncUserIds } from "./sync-users-resolver"
 import { getDingTalkSyncWindows } from "./dingtalk-sync-window"
-
 
 export interface SyncResult {
   userId: string
@@ -110,16 +115,18 @@ async function syncUserEvents(corpAccessToken: string, userId: string): Promise<
       }
     }
 
-    // Build set of active DingTalk event IDs returned in this sync window
-    const activeDtIds = new Set(activeEvents.map((e) => e.id))
+    // Build set of active DingTalk event IDs owned by the user/source being reconciled.
+    const activeSourceDtIds = getActiveDingTalkEventIdsForOrganizer(activeEvents, userId, userId)
 
-    // Fetch all DB events with a dingtalkEventId within the sync time window
+    // Fetch only DB events owned by this DingTalk organizer/source in the sync time window.
+    // Legacy rows without dingtalk_organizer_id are intentionally not deleted.
     const dbEvents = await db
       .select({ id: events.id, dingtalkEventId: events.dingtalkEventId, title: events.title, content: events.content, location: events.location, startTime: events.startTime, endTime: events.endTime })
       .from(events)
       .where(
         and(
           isNotNull(events.dingtalkEventId),
+          eq(events.dingtalkOrganizerId, userId),
           gte(events.startTime, timeMin),
           lte(events.startTime, timeMax)
         )
@@ -130,7 +137,7 @@ async function syncUserEvents(corpAccessToken: string, userId: string): Promise<
     // Delete events that are cancelled or no longer returned by DingTalk
     for (const dbEvent of dbEvents) {
       const dtId = dbEvent.dingtalkEventId!
-      if (cancelledIds.has(dtId) || !activeDtIds.has(dtId)) {
+      if (cancelledIds.has(dtId) || !activeSourceDtIds.has(dtId)) {
         await db.delete(events).where(eq(events.dingtalkEventId, dtId))
         result.deleted++
       }
@@ -154,6 +161,7 @@ async function syncUserEvents(corpAccessToken: string, userId: string): Promise<
         result.skipped++
         continue
       }
+      const dingtalkOrganizerId = getDingTalkEventOrganizerId(dtEvent, userId)
 
       const existing = dbEventByDtId.get(dtEvent.id)
 
@@ -175,6 +183,7 @@ async function syncUserEvents(corpAccessToken: string, userId: string): Promise<
               location: mapped.location,
               startTime: mapped.startTime,
               endTime: mapped.endTime,
+              dingtalkOrganizerId,
               updatedAt: new Date(),
             })
             .where(eq(events.dingtalkEventId, dtEvent.id))
@@ -190,6 +199,7 @@ async function syncUserEvents(corpAccessToken: string, userId: string): Promise<
           organizer: "",
           tags: "",
           dingtalkEventId: dtEvent.id,
+          dingtalkOrganizerId,
           recurrenceRule: "none",
           datePrecision: "exact",
         }).onConflictDoUpdate({
@@ -200,6 +210,7 @@ async function syncUserEvents(corpAccessToken: string, userId: string): Promise<
             location: mapped.location,
             startTime: mapped.startTime,
             endTime: mapped.endTime,
+            dingtalkOrganizerId,
             updatedAt: new Date(),
           },
         })

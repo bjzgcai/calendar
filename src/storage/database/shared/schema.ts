@@ -66,6 +66,7 @@ export const events = pgTable("events", {
   requiredAttendees: text("required_attendees"), // 必须到场的人（JSON数组：[{userid, name}]）
   creatorId: integer("creator_id").references(() => users.id), // 创建者用户 ID（外键关联 users 表）
   dingtalkEventId: varchar("dingtalk_event_id", { length: 255 }).unique(), // DingTalk 日历事件 ID（用于去重）
+  dingtalkOrganizerId: varchar("dingtalk_organizer_id", { length: 255 }), // DingTalk event organizer unionId/source
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 })

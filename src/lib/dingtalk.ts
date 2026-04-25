@@ -316,6 +316,23 @@ export interface DingTalkCalendarEventsResult {
   nextSyncToken?: string
 }
 
+export function getDingTalkEventOrganizerId(dtEvent: DingTalkCalendarEvent, fallbackUserId: string) {
+  return dtEvent.organizer?.id?.trim() || fallbackUserId
+}
+
+export function getActiveDingTalkEventIdsForOrganizer(
+  events: DingTalkCalendarEvent[],
+  organizerId: string,
+  fallbackUserId: string
+) {
+  return new Set(
+    events
+      .filter((event) => event.status !== "cancelled")
+      .filter((event) => getDingTalkEventOrganizerId(event, fallbackUserId) === organizerId)
+      .map((event) => event.id)
+  )
+}
+
 /**
  * 通过企业 corp access token + 员工 staffId 获取用户的 openId
  */

@@ -3,6 +3,7 @@ import test from "node:test"
 
 import { hasValidInternalApiKey } from "../../src/lib/internal-api-auth"
 import { buildDwsExecEnv } from "../../src/lib/dws-command-env"
+import { getActiveDingTalkEventIdsForOrganizer, getDingTalkEventOrganizerId } from "../../src/lib/dingtalk"
 import { getDingTalkSyncWindows } from "../../src/lib/dingtalk-sync-window"
 import { SYNC_USER_NAMES } from "../../src/lib/sync-config"
 
@@ -65,4 +66,71 @@ test("internal API key auth rejects missing, wrong, or unconfigured keys", () =>
 
 test("fallback sync users include Gao Jing for known 50-plus attendee events", () => {
   assert.equal(SYNC_USER_NAMES.MXsvR7kqk4KgsXVriPke9ewiEiE, "高京")
+})
+
+test("DingTalk sync uses organizer id as the event source", () => {
+  assert.equal(
+    getDingTalkEventOrganizerId(
+      {
+        id: "event-1",
+        calendarId: "primary",
+        summary: "Demo",
+        start: { dateTime: "2026-04-25T10:00:00+08:00" },
+        end: { dateTime: "2026-04-25T11:00:00+08:00" },
+        organizer: { id: "organizer-union-id", displayName: "Organizer" },
+      },
+      "fallback-union-id"
+    ),
+    "organizer-union-id"
+  )
+
+  assert.equal(
+    getDingTalkEventOrganizerId(
+      {
+        id: "event-2",
+        calendarId: "primary",
+        summary: "Missing organizer",
+        start: { dateTime: "2026-04-25T10:00:00+08:00" },
+        end: { dateTime: "2026-04-25T11:00:00+08:00" },
+      },
+      "fallback-union-id"
+    ),
+    "fallback-union-id"
+  )
+})
+
+test("DingTalk sync delete scope only includes active events for the source organizer", () => {
+  const sourceIds = getActiveDingTalkEventIdsForOrganizer(
+    [
+      {
+        id: "source-event",
+        calendarId: "primary",
+        summary: "Source",
+        start: { dateTime: "2026-04-25T10:00:00+08:00" },
+        end: { dateTime: "2026-04-25T11:00:00+08:00" },
+        organizer: { id: "source-union-id", displayName: "Source" },
+      },
+      {
+        id: "other-organizer-event",
+        calendarId: "primary",
+        summary: "Other",
+        start: { dateTime: "2026-04-25T12:00:00+08:00" },
+        end: { dateTime: "2026-04-25T13:00:00+08:00" },
+        organizer: { id: "other-union-id", displayName: "Other" },
+      },
+      {
+        id: "cancelled-source-event",
+        calendarId: "primary",
+        summary: "Cancelled",
+        start: { dateTime: "2026-04-25T14:00:00+08:00" },
+        end: { dateTime: "2026-04-25T15:00:00+08:00" },
+        status: "cancelled",
+        organizer: { id: "source-union-id", displayName: "Source" },
+      },
+    ],
+    "source-union-id",
+    "source-union-id"
+  )
+
+  assert.deepEqual([...sourceIds], ["source-event"])
 })
