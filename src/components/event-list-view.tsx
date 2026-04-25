@@ -37,8 +37,8 @@ export function EventListView({
   const topSentinelRef = useRef<HTMLDivElement>(null)
   const bottomSentinelRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
-  const todayRef = useRef<HTMLDivElement>(null) // 用于滚动到今天的位置
-  const hasScrolledToToday = useRef(false) // 跟踪是否已经滚动到今天
+  const scrollTargetRef = useRef<HTMLDivElement>(null) // 用于滚动到目标日期（今天或下一个最近活动）
+  const hasScrolledToTarget = useRef(false) // 跟踪是否已经完成自动滚动
 
   // 获取事件数据
   const fetchEvents = useCallback(
@@ -90,7 +90,7 @@ export function EventListView({
     setEndMonth(addMonths(new Date(), 3))
     setHasMorePast(true)
     setHasMoreFuture(true)
-    hasScrolledToToday.current = false // 重置滚动标记
+    hasScrolledToTarget.current = false // 重置滚动标记
   }, [eventTypeFilter, organizerFilter, tagsFilter, myEventsFilter])
 
   // 初始加载
@@ -101,17 +101,6 @@ export function EventListView({
     }
     loadInitialEvents()
   }, [fetchEvents, startMonth, endMonth])
-
-  // 自动滚动到今天的日期（仅初次加载时）
-  useEffect(() => {
-    if (events.length > 0 && todayRef.current && !hasScrolledToToday.current) {
-      // 延迟一点确保 DOM 已经渲染
-      setTimeout(() => {
-        todayRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
-        hasScrolledToToday.current = true
-      }, 100)
-    }
-  }, [events])
 
   // 加载更早的事件（向上滚动）
   const loadPastEvents = useCallback(async () => {
@@ -189,6 +178,53 @@ export function EventListView({
   // 按日期排序
   const sortedDates = Object.keys(groupedEvents).sort()
 
+  // 滚动目标日期：优先今天，其次未来最近日期，最后回退到最近过去日期
+  const scrollTargetDate = (() => {
+    if (sortedDates.length === 0) return null
+
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const todayTime = today.getTime()
+
+    const nextOrToday = sortedDates.find((date) => {
+      const dateObj = parseISO(date)
+      return dateObj.getTime() >= todayTime
+    })
+
+    return nextOrToday ?? sortedDates[sortedDates.length - 1]
+  })()
+
+  // 自动滚动到目标日期（仅初次加载时）
+  useEffect(() => {
+    if (
+      !scrollTargetDate ||
+      !scrollTargetRef.current ||
+      !containerRef.current ||
+      hasScrolledToTarget.current
+    ) {
+      return
+    }
+
+    const timer = window.setTimeout(() => {
+      const container = containerRef.current
+      const target = scrollTargetRef.current
+      if (!container || !target) return
+
+      const containerRect = container.getBoundingClientRect()
+      const targetRect = target.getBoundingClientRect()
+      const targetTop = targetRect.top - containerRect.top + container.scrollTop
+
+      container.scrollTo({
+        top: Math.max(targetTop - 8, 0),
+        behavior: "smooth",
+      })
+
+      hasScrolledToTarget.current = true
+    }, 100)
+
+    return () => window.clearTimeout(timer)
+  }, [scrollTargetDate, events.length])
+
   // 获取事件类型颜色
   const getEventColor = (event: CalendarEvent) => {
     const primaryEventType = event.extendedProps.eventType
@@ -233,12 +269,13 @@ export function EventListView({
             )
 
             const isToday = isSameDay(dateObj, new Date())
+            const isScrollTarget = date === scrollTargetDate
 
             return (
               <div
                 key={date}
                 className="space-y-3"
-                ref={isToday ? todayRef : null}
+                ref={isScrollTarget ? scrollTargetRef : null}
               >
                 {/* 日期标题 */}
                 <div className="sticky top-0 bg-background/95 backdrop-blur-sm z-10 pb-2">

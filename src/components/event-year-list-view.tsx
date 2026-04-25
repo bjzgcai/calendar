@@ -1,12 +1,13 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { Card } from "@/components/ui/card"
 import { CalendarEvent } from "@/types/calendar"
 import { format, parseISO, startOfYear, endOfYear } from "date-fns"
 import { zhCN } from "date-fns/locale"
 import { Calendar, Clock, MapPin } from "lucide-react"
 import { getEventTypeColor } from "@/storage/database"
+import { useIsMobile } from "@/hooks/use-mobile"
 import {
   formatDateByPrecision,
   getUncertainEventClassName,
@@ -38,6 +39,13 @@ export function EventYearListView({
 }: EventYearListViewProps) {
   const [events, setEvents] = useState<CalendarEvent[]>([])
   const [loading, setLoading] = useState(false)
+  const isMobile = useIsMobile()
+  const monthGridRef = useRef<HTMLDivElement>(null)
+  const hasScrolledToCurrentMonth = useRef(false)
+
+  useEffect(() => {
+    console.log("[EventYearListView] useIsMobile:", isMobile)
+  }, [isMobile])
 
   // 获取整年的事件数据
   const fetchEvents = useCallback(async () => {
@@ -93,6 +101,10 @@ export function EventYearListView({
     fetchEvents()
   }, [fetchEvents])
 
+  useEffect(() => {
+    hasScrolledToCurrentMonth.current = false
+  }, [currentYear])
+
   // 生成所有12个月份
   const allMonths = Array.from({ length: 12 }, (_, i) => {
     const date = new Date(currentYear, i, 1)
@@ -116,6 +128,21 @@ export function EventYearListView({
     }
   })
 
+  // 在移动端自动滚动到当前月份卡片
+  useEffect(() => {
+    if (!isMobile || loading || hasScrolledToCurrentMonth.current) return
+
+    const currentMonthCard = monthGridRef.current?.querySelector<HTMLElement>(
+      '[data-current-month-card="true"]'
+    )
+    if (!currentMonthCard) return
+
+    hasScrolledToCurrentMonth.current = true
+    window.requestAnimationFrame(() => {
+      currentMonthCard.scrollIntoView({ behavior: "smooth", block: "start" })
+    })
+  }, [isMobile, loading, currentYear])
+
   // 获取事件类型颜色
   const getEventColor = (event: CalendarEvent) => {
     const primaryEventType = event.extendedProps.eventType
@@ -134,6 +161,9 @@ export function EventYearListView({
     )
   }
 
+  const currentMonth = format(new Date(), "yyyy-MM")
+  const isCurrentYear = currentYear === new Date().getFullYear()
+
   return (
     <Card className="p-4 md:p-6">
       <div className="space-y-8">
@@ -145,19 +175,21 @@ export function EventYearListView({
         </div>
 
         {/* 月份卡片网格 - 每行2张卡片 */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div ref={monthGridRef} className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {allMonths.map((month) => {
             const monthObj = parseISO(month + "-01")
             const eventsForMonth = groupedEvents[month]
+            const isCurrentMonthCard = isCurrentYear && month === currentMonth
 
             // 检查是否为过去的月份
             const now = new Date()
-            const currentMonth = format(now, "yyyy-MM")
-            const isPastMonth = month < currentMonth
+            const currentMonthForCompare = format(now, "yyyy-MM")
+            const isPastMonth = month < currentMonthForCompare
 
             return (
               <Card
                 key={month}
+                data-current-month-card={isCurrentMonthCard ? "true" : undefined}
                 className={`p-4 hover:shadow-lg transition-shadow ${
                   isPastMonth ? "bg-muted/30" : ""
                 }`}

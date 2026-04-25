@@ -7,8 +7,7 @@ PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 cd "${PROJECT_ROOT}"
 
 PORT=5002
-NODE_ENV=development
-DEPLOY_RUN_PORT=5002
+DEPLOY_RUN_PORT="${PORT}"
 
 kill_port_if_listening() {
     local pids
@@ -32,4 +31,4 @@ echo "Clearing port ${PORT} before start."
 kill_port_if_listening
 echo "Starting HTTP service on port ${PORT} for dev..."
 
-pnpm exec next dev --turbopack --port "${PORT}" --hostname 0.0.0.0
+exec pnpm exec next dev --turbopack --port "${PORT}" --hostname 0.0.0.0

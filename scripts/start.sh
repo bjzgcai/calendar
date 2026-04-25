@@ -1,6 +1,11 @@
 #!/bin/bash
 set -Eeuo pipefail
 
+# Always execute relative to the repository root (this script lives in scripts/).
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+cd "${PROJECT_ROOT}"
+
 PORT=5002
 DEPLOY_RUN_PORT="${DEPLOY_RUN_PORT:-$PORT}"
 
@@ -41,8 +46,8 @@ fi
 
 start_service() {
     echo "Starting HTTP service on port ${DEPLOY_RUN_PORT} for deploy..."
-    npx next start --hostname 0.0.0.0 --port ${DEPLOY_RUN_PORT}
+    echo "Tip: for development, use ./scripts/dev.sh (or pnpm dev)."
+    exec npx next start --hostname 0.0.0.0 --port "${DEPLOY_RUN_PORT}"
 }
 
-echo "Starting HTTP service on port ${DEPLOY_RUN_PORT} for deploy..."
 start_service
