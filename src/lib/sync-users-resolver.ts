@@ -3,6 +3,7 @@ import "server-only"
 import { execFile } from "node:child_process"
 import { promisify } from "node:util"
 import { getAllUsers, getCorpAccessToken } from "./dingtalk"
+import { notifyDwsSyncUserResolverFailure } from "./dingtalk-alerts"
 import { buildDwsExecEnv } from "./dws-command-env"
 import { getDingTalkSyncWindows } from "./dingtalk-sync-window"
 import { SYNC_USER_NAMES as FALLBACK_SYNC_USER_NAMES } from "./sync-config"
@@ -118,6 +119,7 @@ export async function resolveSyncUserNames(): Promise<Record<string, string>> {
     cachedSyncUserNames = mergeSyncUserNames(resolved)
   } catch (error) {
     console.warn("Failed to resolve sync users via dws. Falling back to static sync user list.", error)
+    await notifyDwsSyncUserResolverFailure(error)
     cachedSyncUserNames = cloneSyncMap(FALLBACK_SYNC_USER_NAMES)
   }
 

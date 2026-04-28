@@ -2,6 +2,7 @@ import assert from "node:assert/strict"
 import test from "node:test"
 
 import {
+  buildDwsSyncUserResolverFailureAlert,
   buildDingTalkRobotAlertPayload,
   sendDingTalkRobotAlert,
 } from "../../src/lib/dingtalk-alerts"
@@ -86,4 +87,23 @@ test("DingTalk robot alert sender skips when recipient is not configured", async
     sent: false,
     skippedReason: "ALERT_DINGTALK_USER_ID is not configured",
   })
+})
+
+test("DWS sync user resolver failure alert includes command output", () => {
+  const alert = buildDwsSyncUserResolverFailureAlert({
+    message: "Command failed: dws calendar event list",
+    stdout: JSON.stringify({
+      error: {
+        reason: "not_authenticated",
+        message: "未登录，请先执行 dws auth login",
+      },
+    }),
+    stderr: "",
+  })
+
+  assert.equal(alert.title, "DWS sync user resolver failed")
+  assert.equal(alert.source, "sync-users-resolver")
+  assert.match(alert.fatalInfo, /Command failed: dws calendar event list/)
+  assert.match(alert.fatalInfo, /not_authenticated/)
+  assert.match(alert.fatalInfo, /dws auth login/)
 })

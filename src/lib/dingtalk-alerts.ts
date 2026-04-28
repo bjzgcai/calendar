@@ -117,6 +117,40 @@ export function formatFatalAlertMarkdown(input: {
   ].join("\n")
 }
 
+function formatUnknownError(error: unknown): string {
+  if (error instanceof Error) {
+    const details = [
+      error.message,
+      (error as Error & { stdout?: unknown }).stdout ? `stdout:\n${String((error as Error & { stdout?: unknown }).stdout)}` : null,
+      (error as Error & { stderr?: unknown }).stderr ? `stderr:\n${String((error as Error & { stderr?: unknown }).stderr)}` : null,
+    ].filter(Boolean)
+
+    return details.join("\n\n")
+  }
+
+  if (typeof error === "object" && error !== null) {
+    try {
+      return JSON.stringify(error, null, 2)
+    } catch {
+      return String(error)
+    }
+  }
+
+  return String(error)
+}
+
+export function buildDwsSyncUserResolverFailureAlert(error: unknown) {
+  return {
+    title: "DWS sync user resolver failed",
+    source: "sync-users-resolver",
+    fatalInfo: [
+      "Failed to resolve DingTalk sync users from dws. The sync will fall back to the static SYNC_USER_NAMES list.",
+      "",
+      formatUnknownError(error),
+    ].join("\n"),
+  }
+}
+
 export async function notifyDingTalkFatalAlert(input: {
   title: string
   source: string
@@ -134,4 +168,8 @@ export async function notifyDingTalkFatalAlert(input: {
   } catch (error) {
     console.error("Failed to send DingTalk fatal alert:", error)
   }
+}
+
+export async function notifyDwsSyncUserResolverFailure(error: unknown) {
+  await notifyDingTalkFatalAlert(buildDwsSyncUserResolverFailureAlert(error))
 }

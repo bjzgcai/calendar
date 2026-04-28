@@ -2,7 +2,7 @@ import assert from "node:assert/strict"
 import test from "node:test"
 
 import { hasValidInternalApiKey } from "../../src/lib/internal-api-auth"
-import { buildDwsExecEnv } from "../../src/lib/dws-command-env"
+import { buildDwsEventListArgs, buildDwsExecEnv } from "../../src/lib/dws-command-env"
 import { getActiveDingTalkEventIdsForOrganizer, getDingTalkEventOrganizerId } from "../../src/lib/dingtalk"
 import { getDingTalkSyncWindows } from "../../src/lib/dingtalk-sync-window"
 import { SYNC_USER_NAMES } from "../../src/lib/sync-config"
@@ -33,6 +33,24 @@ test("DWS exec env does not duplicate user-local bin when already present", () =
   const env = buildDwsExecEnv({ HOME: "/home/ecs-user", PATH: "/home/ecs-user/.local/bin:/usr/bin" })
 
   assert.equal(env.PATH, "/home/ecs-user/.local/bin:/usr/bin")
+})
+
+test("DWS event list args include a required 30-day time range", () => {
+  const args = buildDwsEventListArgs(".result.events", new Date("2026-04-28T03:00:00.000Z"))
+
+  assert.deepEqual(args, [
+    "calendar",
+    "event",
+    "list",
+    "--start",
+    "2026-03-29T03:00:00.000Z",
+    "--end",
+    "2026-04-28T03:00:00.000Z",
+    "-f",
+    "json",
+    "--jq",
+    ".result.events",
+  ])
 })
 
 test("internal API key auth accepts a matching x-api-key header", () => {

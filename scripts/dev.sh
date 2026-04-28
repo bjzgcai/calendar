@@ -31,4 +31,6 @@ echo "Clearing port ${PORT} before start."
 kill_port_if_listening
 echo "Starting HTTP service on port ${PORT} for dev..."
 
+export MONITORING_DEV_AUTH_BYPASS=true
+
 exec pnpm exec next dev --turbopack --port "${PORT}" --hostname 0.0.0.0
