@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { eventManager } from "@/storage/database/eventManager";
 import { getSession } from "@/lib/session";
+import {
+  buildImagePosterSvg,
+  buildPosterAiRequestBody,
+  extractPosterImageDataUrl,
+  resolvePosterAiModel,
+} from "@/lib/poster-ai";
 import { addDays } from "date-fns";
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
@@ -186,32 +192,6 @@ export async function POST(request: NextRequest) {
     const eventsToShow = events.slice(0, 12);
     const now = new Date();
 
-    const eventsText = eventsToShow
-      .map((event, index) => {
-        const start = new Date(event.startTime);
-        const dateStr = start.toLocaleDateString("zh-CN", {
-          month: "long",
-          day: "numeric",
-          weekday: "short",
-        });
-        const timeStr = start.toLocaleTimeString("zh-CN", {
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: false,
-        });
-        const typeLabel = event.eventType
-          ? EVENT_TYPE_LABELS[event.eventType.split(",")[0]?.trim()] ||
-            event.eventType.split(",")[0]?.trim()
-          : "";
-        const organizer = event.organizer || "";
-        const location = event.location ? ` · ${event.location}` : "";
-
-        return `${index + 1}. 【${typeLabel}】${event.title}
-   时间：${dateStr} ${timeStr}
-   发起：${organizer}${location}`;
-      })
-      .join("\n\n");
-
     const dateRangeStr = (() => {
       const fmt = (d: Date) => d.toLocaleDateString("zh-CN", { year: "numeric", month: "long", day: "numeric" });
       if (startDateStr && endDateStr) {
@@ -233,50 +213,28 @@ export async function POST(request: NextRequest) {
     })();
 
     const eventCount = eventsToShow.length;
-    // Determine layout density hint for the AI
-    const layoutHint = eventCount <= 4
-      ? "活动数量少（≤4个），每张卡片可以很宽松，字体加大，内容展示充分，可加更多装饰元素"
-      : eventCount <= 8
-      ? "活动数量适中（5-8个），卡片间距舒适，内容完整展示"
-      : "活动数量较多（9-12个），卡片紧凑排列，适当缩小字体和间距，保持整洁可读";
-
     const season = getSeason(startDate);
     const seasonNames: Record<string, string> = { spring: "春", summer: "夏", autumn: "秋", winter: "冬" };
     const seasonBg = SEASON_BACKGROUNDS[season][style] || SEASON_BACKGROUNDS[season]["活泼"];
     const styleDesc = STYLE_DESCRIPTIONS[style] || STYLE_DESCRIPTIONS["活泼"];
-
-    const prompt = `你是一名专业的中国传统与现代融合风格平面设计师。请为中关村学院创建一张精美的活动海报，以SVG格式输出。
-
-**样式：${style}**
-${styleDesc}
-
-**季节主题背景（当前为${seasonNames[season]}季）：**
-${seasonBg}
-重要：背景图案必须用SVG基本图形（path、circle、ellipse、rect、line）纯手绘实现，不使用任何外部图片资源。背景图层必须置于内容图层之下（先绘制背景，再绘制文字和卡片）。
-
-**活动数据（共 ${eventCount} 个活动，时间范围：${dateRangeStr}）：**
-${eventsText || "暂无活动"}
-
-**排版自适应要求（重要）：**
-- ${layoutHint}
-- 根据实际活动数量动态调整卡片高度和字号，充分利用内容区空间
-- 活动数量少时：增大标题字号、增加卡片内边距、添加更多装饰细节
-- 活动数量多时：精简排版、减小内边距、保持所有活动均可见
-
-**严格技术规范：**
-- SVG根元素必须包含：width="600" height="900" viewBox="0 0 600 900" xmlns="http://www.w3.org/2000/svg"
-- 所有字体：font-family="'Microsoft YaHei', 'PingFang SC', 'Hiragino Sans GB', 'WenQuanYi Micro Hei', sans-serif"
-- 不使用任何外部资源（无 image href、无外部字体链接）
-- 文字内容均为中文
-- 顶部区域（约高150px）：展示 "中关村学院" 和 "活动日历 ${dateRangeStr}" 标题
-- 中间内容区（约高680px）：展示活动列表，每个活动用卡片或条目布局
-- 底部区域（约高70px）：生成日期、机构名称
-- 活动条目若超出空间可截断但不能溢出SVG边界
-- 使用 <clipPath> 或 overflow="hidden" 防止内容溢出
-- 数字和特殊字符使用安全的ASCII字符
-
-**输出要求：**
-直接输出完整的SVG代码，从 <svg 开始，到 </svg> 结束。不要包含任何解释、注释或markdown代码块标记（不要用\`\`\`）。`;
+    const eventTypesSummary = Array.from(
+      new Set(
+        eventsToShow
+          .map((event) => event.eventType?.split(",")[0]?.trim())
+          .filter((eventType): eventType is string => !!eventType)
+          .map((eventType) => EVENT_TYPE_LABELS[eventType] || eventType)
+      )
+    ).join("、") || "综合活动";
+    const prompt = `Use case: ads-marketing
+Asset type: vertical campus event calendar poster background, 2:3 aspect ratio.
+Primary request: Create a polished visual background layer for a 中关村学院 activity calendar poster.
+Season theme: ${seasonNames[season]}季, China, elegant seasonal atmosphere.
+Visual style: ${style}. Modern Chinese design with refined academic tone, clean composition, rich but restrained visual detail.
+Style reference, adapt visually without drawing text: ${styleDesc}
+Seasonal motif reference, adapt visually without drawing text: ${seasonBg}
+Composition: vertical poster with clear top title area, a calm readable center content area, and a small footer area. Leave generous empty space for real event text overlays. The final poster will contain ${eventCount} event cards for ${dateRangeStr}. Event categories: ${eventTypesSummary}.
+Text rules: do not include readable text, letters, numbers, logos, QR codes, watermarks, or fake event names. Typography will be added by the application after image generation.
+Constraints: no people, no building signage, no external brand marks, keep the center readable and uncluttered.`;
 
     const response = await fetch(OPENROUTER_API_URL, {
       method: "POST",
@@ -287,15 +245,7 @@ ${eventsText || "暂无活动"}
         "X-Title": "Event Calendar Poster Generator",
       },
       body: JSON.stringify({
-        model: "anthropic/claude-3.5-sonnet",
-        messages: [
-          {
-            role: "user",
-            content: prompt,
-          },
-        ],
-        max_tokens: 4096,
-        temperature: 0.7,
+        ...buildPosterAiRequestBody(prompt),
       }),
     });
 
@@ -309,28 +259,29 @@ ${eventsText || "暂无活动"}
     }
 
     const data = await response.json();
-    const content = data.choices?.[0]?.message?.content || "";
+    const backgroundDataUrl = extractPosterImageDataUrl(data);
 
-    // Extract SVG from response
-    let svg = content.trim();
-
-    // Strip markdown code fences if present
-    svg = svg.replace(/^```(?:svg|xml)?\n?/i, "").replace(/\n?```$/i, "").trim();
-
-    // Validate it looks like SVG
-    if (!svg.startsWith("<svg") && !svg.includes("<svg")) {
-      const svgMatch = svg.match(/<svg[\s\S]*<\/svg>/i);
-      if (svgMatch) {
-        svg = svgMatch[0];
-      } else {
-        return NextResponse.json(
-          { error: "AI未能生成有效的海报，请重试" },
-          { status: 500 }
-        );
-      }
+    if (!backgroundDataUrl) {
+      return NextResponse.json(
+        { error: "AI未能生成有效的海报图片，请重试" },
+        { status: 500 }
+      );
     }
 
-    return NextResponse.json({ svg, eventCount: eventsToShow.length });
+    const svg = buildImagePosterSvg({
+      backgroundDataUrl,
+      dateRange: dateRangeStr,
+      generatedDate: now.toLocaleDateString("zh-CN", { year: "numeric", month: "long", day: "numeric" }),
+      events: eventsToShow.map((event) => ({
+        title: event.title,
+        startTime: event.startTime,
+        location: event.location,
+        organizer: event.organizer,
+        eventType: event.eventType,
+      })),
+    });
+
+    return NextResponse.json({ svg, eventCount: eventsToShow.length, model: resolvePosterAiModel() });
   } catch (error) {
     console.error("Error generating poster:", error);
     return NextResponse.json(
