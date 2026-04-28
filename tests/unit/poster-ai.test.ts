@@ -10,8 +10,8 @@ import {
 } from "../../src/lib/poster-ai"
 
 test("poster AI model defaults to the OpenRouter image model", () => {
-  assert.equal(DEFAULT_POSTER_AI_MODEL, "openai/gpt-5.4-image-2")
-  assert.equal(resolvePosterAiModel({}), "openai/gpt-5.4-image-2")
+  assert.equal(DEFAULT_POSTER_AI_MODEL, "black-forest-labs/flux.2-max")
+  assert.equal(resolvePosterAiModel({}), "black-forest-labs/flux.2-max")
 })
 
 test("poster AI model can be overridden without accepting blank env values", () => {
@@ -26,10 +26,10 @@ test("poster AI model can be overridden without accepting blank env values", () 
 })
 
 test("poster AI request asks OpenRouter for image output", () => {
-  assert.deepEqual(buildPosterAiRequestBody("生成背景", { POSTER_AI_MODEL: "openai/gpt-5.4-image-2" }), {
-    model: "openai/gpt-5.4-image-2",
+  assert.deepEqual(buildPosterAiRequestBody("生成背景", { POSTER_AI_MODEL: "black-forest-labs/flux.2-max" }), {
+    model: "black-forest-labs/flux.2-max",
     messages: [{ role: "user", content: "生成背景" }],
-    modalities: ["image", "text"],
+    modalities: ["image"],
     image_config: {
       aspect_ratio: "2:3",
       image_size: "2K",

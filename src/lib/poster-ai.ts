@@ -1,4 +1,4 @@
-export const DEFAULT_POSTER_AI_MODEL = "openai/gpt-5.4-image-2"
+export const DEFAULT_POSTER_AI_MODEL = "black-forest-labs/flux.2-max"
 
 type PosterAiEnv = {
   POSTER_AI_MODEL?: string
@@ -35,15 +35,21 @@ export function resolvePosterAiModel(
 }
 
 export function buildPosterAiRequestBody(prompt: string, env?: PosterAiEnv) {
+  const model = resolvePosterAiModel(env)
+
   return {
-    model: resolvePosterAiModel(env),
+    model,
     messages: [{ role: "user", content: prompt }],
-    modalities: ["image", "text"],
+    modalities: resolvePosterAiModalities(model),
     image_config: {
       aspect_ratio: "2:3",
       image_size: "2K",
     },
   }
+}
+
+function resolvePosterAiModalities(model: string): string[] {
+  return model.startsWith("black-forest-labs/flux") ? ["image"] : ["image", "text"]
 }
 
 export function extractPosterImageDataUrl(response: unknown): string | null {
