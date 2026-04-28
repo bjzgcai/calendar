@@ -1,431 +1,121 @@
 # 中关村学院活动日历
 
-这是一个基于 [Next.js 16](https://nextjs.org) + [shadcn/ui](https://ui.shadcn.com) 的全栈活动管理应用。
+基于 Next.js 16、React 19、PostgreSQL、Drizzle、shadcn/ui 和 Tailwind CSS v4 的活动日历系统。支持钉钉 SSO、海报 AI 解析、批量建活动、日历同步、筛选、海报生成和第三方空闲时间查询。
 
 ## 快速开始
 
-### 安装 dws CLI（钉钉同步依赖）
-
-钉钉日历同步现在会在服务端调用 `dws calendar event list` 做动态候选人发现，因此 `dws` 是运行时依赖。
-
 ```bash
-# macOS / Linux
-curl -fsSL https://raw.githubusercontent.com/DingTalk-Real-AI/dingtalk-workspace-cli/main/scripts/install.sh | sh
-
-# 确认安装
-export PATH="$HOME/.local/bin:$PATH"
-dws version
-```
-
-首次安装后请完成认证（在部署机/服务器本机执行）：
-
-```bash
-dws auth login --client-id <your-app-key> --client-secret <your-app-secret>
-# 或先检查状态
-dws auth status
-```
-
-### 启动开发服务器
-
-```bash
+pnpm install
 pnpm dev
 ```
 
-启动后，在浏览器中打开 [http://localhost:5002](http://localhost:5002) 查看应用。
+开发服务默认运行在 [http://localhost:5002](http://localhost:5002)。
 
-开发服务器支持热更新（使用 Turbopack），修改代码后页面会自动刷新。
-
-### 构建生产版本
+常用命令：
 
 ```bash
-pnpm build
+pnpm build        # 生产构建
+pnpm start        # 生产运行，端口 5002
+pnpm lint         # ESLint
+pnpm ts-check     # TypeScript 检查
+pnpm test:unit    # Node 单元测试
+pnpm test:e2e     # Playwright E2E
 ```
 
-### 启动生产服务器
+## 环境变量
+
+最少需要：
 
 ```bash
-pnpm start
+DATABASE_URL=postgresql://...
+SESSION_SECRET=至少32位随机字符串
 ```
 
-## 生产部署
+常用可选项：
 
-### 一键部署 (Linux)
+```bash
+APP_BASE_URL=http://localhost:5002
+ENABLE_DINGTALK_SSO=true
+DINGTALK_APP_KEY=...
+DINGTALK_APP_SECRET=...
+DINGTALK_CORP_ID=...
+ALERT_DINGTALK_USER_ID=...
+SESSION_SECURE=true
+OPENROUTER_API_KEY=...
+POSTERS_STORAGE_PATH=storage/posters
+THIRD_PARTY_API_KEY=...
+AVAILABILITY_ALLOWED_IPS=127.0.0.1,::1
+DINGTALK_WEBHOOK_URL=...
+ENABLE_S3_STORAGE=false
+AWS_S3_REGION=...
+AWS_S3_BUCKET=...
+AWS_ACCESS_KEY_ID=...
+AWS_SECRET_ACCESS_KEY=...
+```
 
-本项目提供了完整的自动化部署脚本，可在 Linux 服务器上一键完成所有设置：
+钉钉日历同步依赖 `dws` CLI：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/DingTalk-Real-AI/dingtalk-workspace-cli/main/scripts/install.sh | sh
+export PATH="$HOME/.local/bin:$PATH"
+dws auth login --client-id <app-key> --client-secret <app-secret>
+```
+
+## 项目结构
+
+```text
+src/app                         Next.js App Router 与 API routes
+src/components                  日历、表单、筛选、详情、用户菜单等 UI
+src/components/ui               shadcn/ui 基础组件
+src/contexts/auth-context.tsx   登录状态与前端缓存
+src/lib                         钉钉、会话、数据库、同步、节假日等服务
+src/storage/database            Drizzle schema 与 eventManager
+src/types                       前端类型
+drizzle                         数据库迁移
+tests                           单元测试与 Playwright E2E
+skills                          本仓库技能与 API 示例
+docs                            业务/部署/接口补充文档
+```
+
+注意：活动 schema 以 `src/storage/database/shared/schema.ts` 为准，`src/db/schema.ts` 不是当前主数据模型。
+
+## 核心能力
+
+- 活动年/月/周/日/列表视图，支持响应式布局。
+- 活动创建、编辑、删除、筛选、标签、发起者、活动性质和“我的活动”。
+- 精确日期或仅月份待定的活动。
+- 重复活动、必须到场人员、图片上传和海报展示。
+- 钉钉 OAuth 登录、JSAPI 初始化、组织用户选择。
+- 钉钉日历同步：动态发现同步用户，拉取大规模参会日程，删除同步活动时写入 blocklist。
+- OpenRouter/Qwen VL 海报解析与海报生成。
+- `/api/availability/query` 空闲时间查询，配套 OpenAPI 文档在 `docs/openapi/availability-query.yaml`。
+
+## 数据库
+
+```bash
+pnpm exec drizzle-kit migrate
+```
+
+主要表：
+
+- `users`: 钉钉用户信息。
+- `events`: 活动、时间、地点、发起者、活动性质、标签、重复规则、日期精度、必到人员、创建者、钉钉同步 ID。
+- `dingtalk_deleted_events`: 手动删除的钉钉同步活动 blocklist。
+
+## 部署
+
+Linux 一键部署：
 
 ```bash
 sudo ./deploy.sh
 ```
 
-部署脚本会自动完成：
-- ✅ 安装 Node.js 20 (如未安装)
-- ✅ 安装 PostgreSQL 数据库 (如未安装)
-- ✅ 创建数据库和用户
-- ✅ 安装 pnpm 包管理器
-- ✅ 检查并安装 dws CLI（钉钉同步依赖）
-- ✅ 配置环境变量
-- ✅ 安装项目依赖
-- ✅ 运行数据库迁移
-- ✅ 构建生产版本
-- ✅ 创建 systemd 系统服务
-- ✅ 启动应用程序
-
-部署后，应用会自动以 systemd 服务方式运行，支持：
-- 开机自动启动
-- 崩溃自动重启
-- 系统日志记录
-
-### 管理服务
-
-```bash
-# 查看状态
-sudo systemctl status calendar-events
-
-# 查看日志
-sudo journalctl -u calendar-events -f
-
-# 重启服务
-sudo systemctl restart calendar-events
-
-# 停止服务
-sudo systemctl stop calendar-events
-
-# 启动服务
-sudo systemctl start calendar-events
-
-# 故障诊断
-sudo ./troubleshoot.sh
-```
-
-详细部署说明请参考 [DEPLOYMENT.md](DEPLOYMENT.md) 文档。
-
-## 项目结构
-
-```
-src/
-├── app/                      # Next.js App Router 目录
-│   ├── layout.tsx           # 根布局组件
-│   ├── page.tsx             # 首页
-│   ├── globals.css          # 全局样式（包含 shadcn 主题变量）
-│   └── [route]/             # 其他路由页面
-├── components/              # React 组件目录
-│   └── ui/                  # shadcn/ui 基础组件（优先使用）
-│       ├── button.tsx
-│       ├── card.tsx
-│       └── ...
-├── lib/                     # 工具函数库
-│   └── utils.ts            # cn() 等工具函数
-└── hooks/                   # 自定义 React Hooks（可选）
-```
-
-## 核心开发规范
-
-### 1. 组件开发
-
-**优先使用 shadcn/ui 基础组件**
-
-本项目已预装完整的 shadcn/ui 组件库，位于 `src/components/ui/` 目录。开发时应优先使用这些组件作为基础：
-
-```tsx
-// ✅ 推荐：使用 shadcn 基础组件
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-
-export default function MyComponent() {
-  return (
-    <Card>
-      <CardHeader>标题</CardHeader>
-      <CardContent>
-        <Input placeholder="输入内容" />
-        <Button>提交</Button>
-      </CardContent>
-    </Card>
-  );
-}
-```
-
-**可用的 shadcn 组件清单**
-
-- 表单：`button`, `input`, `textarea`, `select`, `checkbox`, `radio-group`, `switch`, `slider`
-- 布局：`card`, `separator`, `tabs`, `accordion`, `collapsible`, `scroll-area`
-- 反馈：`alert`, `alert-dialog`, `dialog`, `toast`, `sonner`, `progress`
-- 导航：`dropdown-menu`, `menubar`, `navigation-menu`, `context-menu`
-- 数据展示：`table`, `avatar`, `badge`, `hover-card`, `tooltip`, `popover`
-- 其他：`calendar`, `command`, `carousel`, `resizable`, `sidebar`
-
-详见 `src/components/ui/` 目录下的具体组件实现。
-
-### 2. 路由开发
-
-Next.js 使用文件系统路由，在 `src/app/` 目录下创建文件夹即可添加路由：
-
-```bash
-# 创建新路由 /about
-src/app/about/page.tsx
-
-# 创建动态路由 /posts/[id]
-src/app/posts/[id]/page.tsx
-
-# 创建路由组（不影响 URL）
-src/app/(marketing)/about/page.tsx
-
-# 创建 API 路由
-src/app/api/users/route.ts
-```
-
-**页面组件示例**
-
-```tsx
-// src/app/about/page.tsx
-import { Button } from '@/components/ui/button';
-
-export const metadata = {
-  title: '关于我们',
-  description: '关于页面描述',
-};
-
-export default function AboutPage() {
-  return (
-    <div>
-      <h1>关于我们</h1>
-      <Button>了解更多</Button>
-    </div>
-  );
-}
-```
-
-**动态路由示例**
-
-```tsx
-// src/app/posts/[id]/page.tsx
-export default async function PostPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-
-  return <div>文章 ID: {id}</div>;
-}
-```
-
-**API 路由示例**
-
-```tsx
-// src/app/api/users/route.ts
-import { NextResponse } from 'next/server';
-
-export async function GET() {
-  return NextResponse.json({ users: [] });
-}
-
-export async function POST(request: Request) {
-  const body = await request.json();
-  return NextResponse.json({ success: true });
-}
-```
-
-### 3. 依赖管理
-
-**必须使用 pnpm 管理依赖**
-
-```bash
-# ✅ 安装依赖
-pnpm install
-
-# ✅ 添加新依赖
-pnpm add package-name
-
-# ✅ 添加开发依赖
-pnpm add -D package-name
-
-# ❌ 禁止使用 npm 或 yarn
-# npm install  # 错误！
-# yarn add     # 错误！
-```
-
-项目已配置 `preinstall` 脚本，使用其他包管理器会报错。
-
-### 4. 样式开发
-
-**使用 Tailwind CSS v4**
-
-本项目使用 Tailwind CSS v4 进行样式开发，并已配置 shadcn 主题变量。
-
-```tsx
-// 使用 Tailwind 类名
-<div className="flex items-center gap-4 p-4 rounded-lg bg-background">
-  <Button className="bg-primary text-primary-foreground">
-    主要按钮
-  </Button>
-</div>
-
-// 使用 cn() 工具函数合并类名
-import { cn } from '@/lib/utils';
-
-<div className={cn(
-  "base-class",
-  condition && "conditional-class",
-  className
-)}>
-  内容
-</div>
-```
-
-**主题变量**
-
-主题变量定义在 `src/app/globals.css` 中，支持亮色/暗色模式：
-
-- `--background`, `--foreground`
-- `--primary`, `--primary-foreground`
-- `--secondary`, `--secondary-foreground`
-- `--muted`, `--muted-foreground`
-- `--accent`, `--accent-foreground`
-- `--destructive`, `--destructive-foreground`
-- `--border`, `--input`, `--ring`
-
-### 5. 表单开发
-
-推荐使用 `react-hook-form` + `zod` 进行表单开发：
-
-```tsx
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-
-const formSchema = z.object({
-  username: z.string().min(2, '用户名至少 2 个字符'),
-  email: z.string().email('请输入有效的邮箱'),
-});
-
-export default function MyForm() {
-  const form = useForm({
-    resolver: zodResolver(formSchema),
-    defaultValues: { username: '', email: '' },
-  });
-
-  const onSubmit = (data: z.infer<typeof formSchema>) => {
-    console.log(data);
-  };
-
-  return (
-    <form onSubmit={form.handleSubmit(onSubmit)}>
-      <Input {...form.register('username')} />
-      <Input {...form.register('email')} />
-      <Button type="submit">提交</Button>
-    </form>
-  );
-}
-```
-
-### 6. 数据获取
-
-**服务端组件（推荐）**
-
-```tsx
-// src/app/posts/page.tsx
-async function getPosts() {
-  const res = await fetch('https://api.example.com/posts', {
-    cache: 'no-store', // 或 'force-cache'
-  });
-  return res.json();
-}
-
-export default async function PostsPage() {
-  const posts = await getPosts();
-
-  return (
-    <div>
-      {posts.map(post => (
-        <div key={post.id}>{post.title}</div>
-      ))}
-    </div>
-  );
-}
-```
-
-**客户端组件**
-
-```tsx
-'use client';
-
-import { useEffect, useState } from 'react';
-
-export default function ClientComponent() {
-  const [data, setData] = useState(null);
-
-  useEffect(() => {
-    fetch('/api/data')
-      .then(res => res.json())
-      .then(setData);
-  }, []);
-
-  return <div>{JSON.stringify(data)}</div>;
-}
-```
-
-## 常见开发场景
-
-### 添加新页面
-
-1. 在 `src/app/` 下创建文件夹和 `page.tsx`
-2. 使用 shadcn 组件构建 UI
-3. 根据需要添加 `layout.tsx` 和 `loading.tsx`
-
-### 创建业务组件
-
-1. 在 `src/components/` 下创建组件文件（非 UI 组件）
-2. 优先组合使用 `src/components/ui/` 中的基础组件
-3. 使用 TypeScript 定义 Props 类型
-
-### 添加全局状态
-
-推荐使用 React Context 或 Zustand：
-
-```tsx
-// src/lib/store.ts
-import { create } from 'zustand';
-
-interface Store {
-  count: number;
-  increment: () => void;
-}
-
-export const useStore = create<Store>((set) => ({
-  count: 0,
-  increment: () => set((state) => ({ count: state.count + 1 })),
-}));
-```
-
-### 集成数据库
-
-推荐使用 Prisma 或 Drizzle ORM，在 `src/lib/db.ts` 中配置。
-
-## 技术栈
-
-- **框架**: Next.js 16.1.1 (App Router)
-- **UI 组件**: shadcn/ui (基于 Radix UI)
-- **样式**: Tailwind CSS v4
-- **表单**: React Hook Form + Zod
-- **图标**: Lucide React
-- **字体**: Geist Sans & Geist Mono
-- **包管理器**: pnpm 9+
-- **TypeScript**: 5.x
-
-## 参考文档
-
-- [Next.js 官方文档](https://nextjs.org/docs)
-- [shadcn/ui 组件文档](https://ui.shadcn.com)
-- [Tailwind CSS 文档](https://tailwindcss.com/docs)
-- [React Hook Form](https://react-hook-form.com)
-
-## 重要提示
-
-1. **必须使用 pnpm** 作为包管理器
-2. **优先使用 shadcn/ui 组件** 而不是从零开发基础组件
-3. **遵循 Next.js App Router 规范**，正确区分服务端/客户端组件
-4. **使用 TypeScript** 进行类型安全开发
-5. **使用 `@/` 路径别名** 导入模块（已配置）
+更多部署、PM2/systemd、钉钉同步和服务器说明见 [DEPLOY.md](DEPLOY.md)。
+
+## 开发约定
+
+- 只用 `pnpm`。
+- 使用 `@/` 路径别名。
+- 优先组合 `src/components/ui` 中的 shadcn/ui 组件。
+- 服务端/API 才能导入数据库模块；客户端只导入类型、常量或接口。
+- 修改 schema 时同步更新 Drizzle 迁移。
