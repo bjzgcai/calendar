@@ -268,7 +268,10 @@ export function CalendarPageContent() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       <div className="container mx-auto p-4 md:p-8">
         {/* Header */}
-        <div className="mb-8">
+        <div
+          data-calendar-header="true"
+          className="sticky top-0 z-50 -mx-4 mb-8 bg-background/95 px-4 py-4 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/80 md:-mx-8 md:px-8"
+        >
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">

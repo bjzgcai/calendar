@@ -7,11 +7,8 @@ function getCurrentMonthHeading() {
   return `${year}年${month}月`;
 }
 
-test.describe('Year View Mobile Scroll', () => {
-  test('mobile year view should scroll current month card into view', async ({ page }) => {
-    const viewport = page.viewportSize();
-    test.skip(!viewport || viewport.width >= 768, 'Mobile-only behavior');
-
+test.describe('Year View Current Month Scroll', () => {
+  test('year view should scroll current month card into view on every viewport', async ({ page }) => {
     await page.goto('/?view=year');
     await page.waitForSelector('h2:has-text("年活动列表")', { timeout: 10000 });
 
@@ -26,8 +23,41 @@ test.describe('Year View Mobile Scroll', () => {
       .poll(async () => page.evaluate(() => window.scrollY), { timeout: 10000 })
       .toBeGreaterThan(100);
 
-    const headingBox = await currentMonthHeading.boundingBox();
-    expect(headingBox).not.toBeNull();
-    expect(headingBox!.y).toBeLessThan(450);
+    const header = page.locator('[data-calendar-header="true"]');
+
+    await expect
+      .poll(async () => {
+        const headingBox = await currentMonthHeading.boundingBox();
+        const headerBox = await header.boundingBox();
+        const viewport = page.viewportSize();
+
+        if (!headingBox || !headerBox || !viewport) return false;
+
+        return (
+          headingBox.y >= headerBox.y + headerBox.height - 1 &&
+          headingBox.y < viewport.height
+        );
+      }, { timeout: 5000 })
+      .toBe(true);
+  });
+
+  test('header should remain sticky while scrolling year view', async ({ page }) => {
+    await page.goto('/?view=year');
+    await page.waitForSelector('h1:has-text("学院活动日历")', { timeout: 10000 });
+
+    const header = page.locator('[data-calendar-header="true"]');
+    await expect(header).toBeVisible();
+
+    const before = await header.boundingBox();
+    expect(before).not.toBeNull();
+
+    await page.evaluate(() => window.scrollTo(0, 900));
+
+    await expect
+      .poll(async () => {
+        const box = await header.boundingBox();
+        return Math.round(box?.y ?? -1);
+      }, { timeout: 5000 })
+      .toBeLessThanOrEqual(1);
   });
 });

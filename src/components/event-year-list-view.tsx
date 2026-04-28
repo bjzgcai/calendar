@@ -7,11 +7,7 @@ import { format, parseISO, startOfYear, endOfYear } from "date-fns"
 import { zhCN } from "date-fns/locale"
 import { Calendar, Clock, MapPin } from "lucide-react"
 import { getEventTypeColor } from "@/storage/database"
-import { useIsMobile } from "@/hooks/use-mobile"
-import {
-  formatDateByPrecision,
-  getUncertainEventClassName,
-} from "@/lib/date-precision-utils"
+import { formatDateByPrecision } from "@/lib/date-precision-utils"
 import { DatePrecision } from "@/storage/database/shared/schema"
 
 interface EventYearListViewProps {
@@ -38,14 +34,9 @@ export function EventYearListView({
   currentYear = new Date().getFullYear(),
 }: EventYearListViewProps) {
   const [events, setEvents] = useState<CalendarEvent[]>([])
-  const [loading, setLoading] = useState(false)
-  const isMobile = useIsMobile()
+  const [loading, setLoading] = useState(true)
   const monthGridRef = useRef<HTMLDivElement>(null)
   const hasScrolledToCurrentMonth = useRef(false)
-
-  useEffect(() => {
-    console.log("[EventYearListView] useIsMobile:", isMobile)
-  }, [isMobile])
 
   // 获取整年的事件数据
   const fetchEvents = useCallback(async () => {
@@ -128,9 +119,9 @@ export function EventYearListView({
     }
   })
 
-  // 在移动端自动滚动到当前月份卡片
+  // 自动滚动到当前月份卡片
   useEffect(() => {
-    if (!isMobile || loading || hasScrolledToCurrentMonth.current) return
+    if (loading || hasScrolledToCurrentMonth.current) return
 
     const currentMonthCard = monthGridRef.current?.querySelector<HTMLElement>(
       '[data-current-month-card="true"]'
@@ -139,9 +130,18 @@ export function EventYearListView({
 
     hasScrolledToCurrentMonth.current = true
     window.requestAnimationFrame(() => {
-      currentMonthCard.scrollIntoView({ behavior: "smooth", block: "start" })
+      const stickyHeader = document.querySelector<HTMLElement>(
+        '[data-calendar-header="true"]'
+      )
+      const headerHeight = stickyHeader?.getBoundingClientRect().height ?? 0
+      const targetTop = currentMonthCard.getBoundingClientRect().top + window.scrollY
+
+      window.scrollTo({
+        top: Math.max(targetTop - headerHeight - 16, 0),
+        behavior: "smooth",
+      })
     })
-  }, [isMobile, loading, currentYear])
+  }, [loading, currentYear])
 
   // 获取事件类型颜色
   const getEventColor = (event: CalendarEvent) => {
@@ -190,7 +190,7 @@ export function EventYearListView({
               <Card
                 key={month}
                 data-current-month-card={isCurrentMonthCard ? "true" : undefined}
-                className={`p-4 hover:shadow-lg transition-shadow ${
+                className={`scroll-mt-28 p-4 hover:shadow-lg transition-shadow ${
                   isPastMonth ? "bg-muted/30" : ""
                 }`}
               >
@@ -218,7 +218,6 @@ export function EventYearListView({
                     eventsForMonth.map((event) => {
                       const color = getEventColor(event)
                       const startTime = parseISO(event.start)
-                      const endTime = parseISO(event.end)
                       const datePrecision = (event.extendedProps?.datePrecision || "exact") as DatePrecision
                       const approximateMonth = event.extendedProps?.approximateMonth
 
