@@ -1,4 +1,9 @@
-export const DEFAULT_POSTER_AI_MODEL = "black-forest-labs/flux.2-max"
+export const DEFAULT_POSTER_AI_API_URL = "https://openrouter.ihainan.me/api/v1/chat/completions"
+export const DEFAULT_POSTER_AI_MODEL = "openai/gpt-5.4-image-2"
+export const MAX_POSTER_EVENTS = 10
+
+const POSTER_WINDOW_DAYS = 15
+const POSTER_TIME_ZONE = "Asia/Shanghai"
 
 type PosterAiEnv = {
   POSTER_AI_MODEL?: string
@@ -10,6 +15,7 @@ type PosterEvent = {
   location?: string | null
   organizer?: string | null
   eventType?: string | null
+  recurrenceRule?: string | null
 }
 
 type BuildImagePosterSvgInput = {
@@ -81,13 +87,38 @@ export function extractPosterImageDataUrl(response: unknown): string | null {
   return null
 }
 
+export function buildPosterDateWindow(now: Date = new Date()): {
+  startDate: Date
+  endDate: Date
+} {
+  const { year, month, day } = getShanghaiDateParts(now)
+
+  return {
+    startDate: new Date(now),
+    endDate: shanghaiDateAtTime(year, month, day + POSTER_WINDOW_DAYS - 1, 23, 59, 59, 999),
+  }
+}
+
+export function formatPosterDateRange(startDate: Date, endDate: Date): string {
+  const start = getShanghaiDateParts(startDate)
+  const end = getShanghaiDateParts(endDate)
+
+  if (start.year === end.year) {
+    return `${start.year}年${start.month}月${start.day}日 至 ${end.month}月${end.day}日`
+  }
+
+  return `${start.year}年${start.month}月${start.day}日 至 ${end.year}年${end.month}月${end.day}日`
+}
+
 export function buildImagePosterSvg({
   backgroundDataUrl,
   dateRange,
   generatedDate,
   events,
 }: BuildImagePosterSvgInput): string {
-  const shownEvents = events.slice(0, 12)
+  const shownEvents = events
+    .filter((event) => !event.recurrenceRule || event.recurrenceRule === "none")
+    .slice(0, MAX_POSTER_EVENTS)
   const cardHeight = shownEvents.length <= 4 ? 106 : shownEvents.length <= 8 ? 78 : 56
   const titleSize = shownEvents.length <= 4 ? 18 : shownEvents.length <= 8 ? 15 : 12
   const metaSize = shownEvents.length <= 4 ? 12 : shownEvents.length <= 8 ? 10 : 8
@@ -184,6 +215,33 @@ function formatTime(date: Date): string {
     minute: "2-digit",
     hour12: false,
   }).format(date)
+}
+
+function getShanghaiDateParts(date: Date): { year: number; month: number; day: number } {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: POSTER_TIME_ZONE,
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+  }).formatToParts(date)
+
+  return {
+    year: Number(parts.find((part) => part.type === "year")?.value),
+    month: Number(parts.find((part) => part.type === "month")?.value),
+    day: Number(parts.find((part) => part.type === "day")?.value),
+  }
+}
+
+function shanghaiDateAtTime(
+  year: number,
+  month: number,
+  day: number,
+  hour: number,
+  minute: number,
+  second: number,
+  millisecond: number
+): Date {
+  return new Date(Date.UTC(year, month - 1, day, hour - 8, minute, second, millisecond))
 }
 
 function truncate(value: string, maxLength: number): string {

@@ -36,13 +36,11 @@ interface EventFilterProps {
   onOrganizerChange: (organizer: string | string[] | undefined) => void
   onTagsChange: (tags: string[]) => void
   onMyEventsChange: (myEvents: boolean) => void
-  viewStartDate?: Date
-  viewEndDate?: Date
 }
 
 type PosterStyle = "活泼" | "严肃" | "极客" | "科技"
 
-export function EventFilter({ onEventTypeChange, onOrganizerChange, onTagsChange, onMyEventsChange, viewStartDate, viewEndDate }: EventFilterProps) {
+export function EventFilter({ onEventTypeChange, onOrganizerChange, onTagsChange, onMyEventsChange }: EventFilterProps) {
   const { user, ssoEnabled } = useAuth()
   const canEdit = !ssoEnabled || !!user
   const canGeneratePoster = canEdit || process.env.NODE_ENV === "development"
@@ -74,8 +72,6 @@ export function EventFilter({ onEventTypeChange, onOrganizerChange, onTagsChange
           eventTypeFilter: selectedEventType?.join(",") || undefined,
           organizerFilter: selectedOrganizer?.join(",") || undefined,
           tagsFilter: selectedTags.length > 0 ? selectedTags : undefined,
-          startDate: viewStartDate?.toISOString(),
-          endDate: viewEndDate?.toISOString(),
         }),
       })
       const data = await response.json()
@@ -241,7 +237,7 @@ export function EventFilter({ onEventTypeChange, onOrganizerChange, onTagsChange
                     className="h-8 gap-1.5 flex-shrink-0"
                     onClick={handleGeneratePoster}
                     disabled={isPosterLoading}
-                    title="根据当前展示事件, AI生成海报"
+                    title="根据接下来10个非重复事件, AI生成海报"
                   >
                     {isPosterLoading ? (
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -515,7 +511,7 @@ export function EventFilter({ onEventTypeChange, onOrganizerChange, onTagsChange
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent side="right">
-                    根据当前展示事件, AI生成海报
+                    根据接下来10个非重复事件, AI生成海报
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>

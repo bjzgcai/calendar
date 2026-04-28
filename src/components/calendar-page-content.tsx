@@ -44,7 +44,6 @@ export function CalendarPageContent() {
   const [refreshKey, setRefreshKey] = useState(0)
   const [viewMode, setViewMode] = useState<ViewMode>(initialViewMode)
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(initialDate)
-  const [calendarViewDates, setCalendarViewDates] = useState<{ start: Date; end: Date } | null>(null)
   const [infoOpen, setInfoOpen] = useState(false)
 
   // 同步 viewMode 到 URL
@@ -152,51 +151,6 @@ export function CalendarPageContent() {
   const handleRefresh = () => {
     setRefreshKey((prev) => prev + 1)
   }
-
-  const handleViewDatesChange = (start: Date, end: Date) => {
-    setCalendarViewDates({ start, end })
-  }
-
-  // Compute poster date range from the current view
-  const posterViewDateRange = (() => {
-    const base = selectedDate ?? new Date()
-    if (viewMode === "year") {
-      const year = base.getFullYear()
-      return { start: new Date(year, 0, 1), end: new Date(year, 11, 31) }
-    }
-    if (viewMode === "list") {
-      const start = new Date()
-      start.setHours(0, 0, 0, 0)
-      const end = new Date(start)
-      end.setDate(end.getDate() + 30)
-      return { start, end }
-    }
-    // month / week / day — prefer FullCalendar's reported range
-    if (calendarViewDates) return calendarViewDates
-    // Fallback: compute from viewMode + base date (before datesSet fires)
-    if (viewMode === "month") {
-      return {
-        start: new Date(base.getFullYear(), base.getMonth(), 1),
-        end: new Date(base.getFullYear(), base.getMonth() + 1, 0, 23, 59, 59),
-      }
-    }
-    if (viewMode === "week") {
-      const day = base.getDay() // 0=Sun
-      const weekStart = new Date(base)
-      weekStart.setDate(base.getDate() - day)
-      weekStart.setHours(0, 0, 0, 0)
-      const weekEnd = new Date(weekStart)
-      weekEnd.setDate(weekStart.getDate() + 6)
-      weekEnd.setHours(23, 59, 59, 999)
-      return { start: weekStart, end: weekEnd }
-    }
-    // day view
-    const start = new Date(base)
-    start.setHours(0, 0, 0, 0)
-    const end = new Date(base)
-    end.setHours(23, 59, 59, 999)
-    return { start, end }
-  })()
 
   // DingTalk calendar sync
   const [syncStatus, setSyncStatus] = useState<"idle" | "syncing" | "error">("idle")
@@ -401,8 +355,6 @@ export function CalendarPageContent() {
                   onOrganizerChange={setOrganizerFilter}
                   onTagsChange={setTagsFilter}
                   onMyEventsChange={setMyEventsFilter}
-                  viewStartDate={posterViewDateRange?.start}
-                  viewEndDate={posterViewDateRange?.end}
                 />
               </div>
               <UserMenu />
@@ -419,8 +371,6 @@ export function CalendarPageContent() {
               onOrganizerChange={setOrganizerFilter}
               onTagsChange={setTagsFilter}
               onMyEventsChange={setMyEventsFilter}
-              viewStartDate={posterViewDateRange?.start}
-              viewEndDate={posterViewDateRange?.end}
             />
           </div>
 
@@ -450,7 +400,6 @@ export function CalendarPageContent() {
                 key={`${refreshKey}-${viewMode}`}
                 onEventClick={handleEventClick}
                 onTimeSlotSelect={handleTimeSlotSelect}
-                onViewDatesChange={handleViewDatesChange}
                 currentView={
                   viewMode === "month"
                     ? "dayGridMonth"

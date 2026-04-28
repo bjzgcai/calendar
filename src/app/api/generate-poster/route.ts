@@ -3,14 +3,17 @@ import { eventManager } from "@/storage/database/eventManager";
 import { getSession } from "@/lib/session";
 import {
   buildImagePosterSvg,
+  buildPosterDateWindow,
   buildPosterAiRequestBody,
+  DEFAULT_POSTER_AI_API_URL,
   extractPosterImageDataUrl,
+  formatPosterDateRange,
+  MAX_POSTER_EVENTS,
   resolvePosterAiModel,
 } from "@/lib/poster-ai";
-import { addDays } from "date-fns";
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
-const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
+const OPENROUTER_API_URL = DEFAULT_POSTER_AI_API_URL;
 
 // Season detection based on month (Northern Hemisphere / China)
 function getSeason(date: Date): "spring" | "summer" | "autumn" | "winter" {
@@ -173,44 +176,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { style = "活泼", eventTypeFilter, organizerFilter, tagsFilter, startDate: startDateStr, endDate: endDateStr } =
-      await request.json();
+    const { style = "活泼", eventTypeFilter, organizerFilter, tagsFilter } = await request.json();
 
-    // Use provided view date range, or fall back to today + 90 days
-    const startDate = startDateStr ? new Date(startDateStr) : (() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; })();
-    const endDate = endDateStr ? new Date(endDateStr) : addDays(startDate, 90);
+    const now = new Date();
+    const { startDate } = buildPosterDateWindow(now);
 
     const events = await eventManager.getAllEvents({
       startDate,
-      endDate,
+      limit: MAX_POSTER_EVENTS,
+      recurrenceRule: "none",
       eventType: eventTypeFilter || undefined,
       organizer: organizerFilter || undefined,
       tags: tagsFilter?.length ? tagsFilter.join(",") : undefined,
     });
 
-    // Format event list (max 12 to keep poster readable)
-    const eventsToShow = events.slice(0, 12);
-    const now = new Date();
-
-    const dateRangeStr = (() => {
-      const fmt = (d: Date) => d.toLocaleDateString("zh-CN", { year: "numeric", month: "long", day: "numeric" });
-      if (startDateStr && endDateStr) {
-        const s = new Date(startDateStr);
-        const e = new Date(endDateStr);
-        // same year+month → show just the month
-        if (s.getFullYear() === e.getFullYear() && s.getMonth() === e.getMonth()) {
-          return s.toLocaleDateString("zh-CN", { year: "numeric", month: "long" });
-        }
-        // same year → show month range
-        if (s.getFullYear() === e.getFullYear()) {
-          const sm = s.toLocaleDateString("zh-CN", { month: "long", day: "numeric" });
-          const em = e.toLocaleDateString("zh-CN", { month: "long", day: "numeric" });
-          return `${s.getFullYear()}年${sm} 至 ${em}`;
-        }
-        return `${fmt(s)} 至 ${fmt(e)}`;
-      }
-      return now.toLocaleDateString("zh-CN", { year: "numeric", month: "long" }) + "起未来90天";
-    })();
+    const eventsToShow = events.slice(0, MAX_POSTER_EVENTS);
+    const lastEvent = eventsToShow[eventsToShow.length - 1];
+    const dateRangeEnd = lastEvent ? new Date(lastEvent.startTime) : startDate;
+    const dateRangeStr = formatPosterDateRange(startDate, dateRangeEnd);
 
     const eventCount = eventsToShow.length;
     const season = getSeason(startDate);
@@ -278,6 +261,7 @@ Constraints: no people, no building signage, no external brand marks, keep the c
         location: event.location,
         organizer: event.organizer,
         eventType: event.eventType,
+        recurrenceRule: event.recurrenceRule,
       })),
     });
 

@@ -1,18 +1,19 @@
 import { eq, and, SQL, gte, lte, like, isNull, or, sql } from "drizzle-orm";
 import { getDirectDb } from "@/lib/db";
 import { events, dingtalkDeletedEvents, insertEventWithCoercionSchema, updateEventWithCoercionSchema } from "./shared/schema";
-import type { Event, InsertEvent, UpdateEvent } from "./shared/schema";
+import type { Event, InsertEvent, RecurrenceRule, UpdateEvent } from "./shared/schema";
 
 type EventListFilters = {
   eventType?: string;
   organizer?: string;
   tags?: string;
   creatorId?: number | null;
+  recurrenceRule?: RecurrenceRule;
 };
 
 export class EventManager {
   private buildFilterConditions(filters: EventListFilters): SQL[] {
-    const { eventType, organizer, tags, creatorId } = filters;
+    const { eventType, organizer, tags, creatorId, recurrenceRule } = filters;
     const conditions: SQL[] = [];
 
     if (eventType) {
@@ -51,6 +52,10 @@ export class EventManager {
       } else {
         conditions.push(eq(events.creatorId, creatorId));
       }
+    }
+
+    if (recurrenceRule) {
+      conditions.push(eq(events.recurrenceRule, recurrenceRule));
     }
 
     return conditions;
